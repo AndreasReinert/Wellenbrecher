@@ -35,3 +35,46 @@ class Fadenkreuz:
 
     def zeichnen(self, fenster, mausposition):
         fenster.blit(self.bild, self.bild.get_rect(center=mausposition))
+
+
+class Anzeigen:
+    """Lebensleiste, Wellenhinweis und Spielende ohne erneutes Laden."""
+
+    def __init__(self):
+        self.schrift = pygame.font.Font(None, settings.UI_SCHRIFTGROESSE)
+        self.wellenschrift = pygame.font.Font(None, settings.WELLEN_SCHRIFTGROESSE)
+        self.endschrift = pygame.font.Font(None, settings.GAME_OVER_SCHRIFTGROESSE)
+        self.schleier = pygame.Surface(settings.FENSTERGROESSE, pygame.SRCALPHA)
+        self.schleier.fill((0, 0, 0, settings.GAME_OVER_ABDUNKLUNG))
+
+    def lebensleiste(self, fenster, leben):
+        rand = settings.UI_RAND
+        text = self.schrift.render(
+            f"Leben: {leben}/{settings.SPIELER_STARTLEBEN}", True, settings.UI_TEXTFARBE
+        )
+        fenster.blit(text, (rand, rand))
+        rahmen = pygame.Rect((rand, rand + text.get_height() +
+                              settings.LEISTE_TEXT_ABSTAND), settings.LEISTE_GROESSE)
+        pygame.draw.rect(fenster, settings.LEISTE_HINTERGRUND, rahmen)
+        fuellung = rahmen.copy()
+        fuellung.width = round(rahmen.width * max(0, leben) / settings.SPIELER_STARTLEBEN)
+        pygame.draw.rect(fenster, settings.LEISTE_FARBE, fuellung)
+        pygame.draw.rect(fenster, settings.UI_TEXTFARBE, rahmen, settings.LEISTE_RAHMEN)
+
+    def welle(self, fenster, nummer):
+        text = self.wellenschrift.render(f"Welle {nummer}", True, settings.UI_TEXTFARBE)
+        fenster.blit(text, text.get_rect(center=fenster.get_rect().center))
+
+    def game_over(self, fenster, welle, besiegt):
+        fenster.blit(self.schleier, (0, 0))
+        x, y = fenster.get_rect().center
+        zeilen = (
+            ("GAME OVER", self.endschrift, settings.GAME_OVER_FARBE, -settings.GAME_OVER_ABSTAND),
+            (f"Welle {welle}  |  Besiegt: {besiegt}", self.schrift, settings.UI_TEXTFARBE, 0),
+            ("Esc oder X zum Beenden", self.schrift, settings.UI_TEXTFARBE, settings.GAME_OVER_ABSTAND),
+        )
+        for inhalt, schrift, farbe, versatz in zeilen:
+            text = schrift.render(inhalt, True, farbe)
+            fenster.blit(text, text.get_rect(center=(x, y + versatz)))
+        # Auch beim Spielende bleibt der leere Lebensbalken sichtbar.
+        self.lebensleiste(fenster, 0)

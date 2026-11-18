@@ -9,6 +9,9 @@ from settings import (
     SPIELER_FARBE, SPIELER_GROESSE, SPIELER_TEMPO,
     SCHUSS_PAUSE, SCHUSS_TEMPO, SCHUSS_GROESSE, SCHUSS_FARBE,
     SCHUSS_LEBENSDAUER, GEGNER_TYPEN,
+    SPIELER_RADIUS, SPIELER_STARTLEBEN, SPIELER_UNVERWUNDBAR_DAUER,
+    SPIELER_BLINK_PAUSE, SCHUSS_RADIUS,
+
 )
 
 
@@ -18,6 +21,9 @@ class Spieler:
     def __init__(self, fenstergroesse):
         self.grenzen = pygame.Rect((0, 0), fenstergroesse)
         self.position = pygame.Vector2(self.grenzen.center)
+        self.radius = SPIELER_RADIUS
+        self.leben = SPIELER_STARTLEBEN
+        self.unverwundbar_rest = 0.0
         self.tempo = SPIELER_TEMPO
         self.schuss_wartezeit = 0.0
         self.originalbild = assets.bild(
@@ -30,6 +36,7 @@ class Spieler:
         self.rand = math.ceil(math.hypot(*self.originalbild.get_size()) / 2)
 
     def aktualisieren(self, delta_time, tasten, mausposition):
+        self.unverwundbar_rest = max(0.0, self.unverwundbar_rest - delta_time)
         self.schuss_wartezeit = max(0.0, self.schuss_wartezeit - delta_time)
         richtung = pygame.Vector2(
             int(tasten[pygame.K_d]) - int(tasten[pygame.K_a]),
@@ -66,7 +73,19 @@ class Spieler:
         self.schuss_wartezeit = SCHUSS_PAUSE
         return Schuss(self.position, richtung)
 
+    def schaden_nehmen(self, schaden):
+        """Nur ein Treffer pro Schutzzeit; Lebenspunkte fallen nicht unter null."""
+        if self.leben <= 0 or self.unverwundbar_rest > 0:
+            return False
+        self.leben = max(0, self.leben - schaden)
+        self.unverwundbar_rest = SPIELER_UNVERWUNDBAR_DAUER
+        return True
+
     def zeichnen(self, fenster):
+        if self.unverwundbar_rest > 0:
+            vergangen = SPIELER_UNVERWUNDBAR_DAUER - self.unverwundbar_rest
+            if int(vergangen / SPIELER_BLINK_PAUSE) % 2 == 0:
+                return
         fenster.blit(self.bild, self.rect)
 
 
@@ -76,6 +95,7 @@ class Schuss:
     def __init__(self, position, richtung):
         self.position = pygame.Vector2(position)
         self.alter = 0.0
+        self.radius = SCHUSS_RADIUS
         self.geschwindigkeit = pygame.Vector2(richtung).normalize() * SCHUSS_TEMPO
         self.bild = assets.bild("schuss", SCHUSS_GROESSE, SCHUSS_FARBE)
         self.rect = self.bild.get_rect(center=(round(self.position.x), round(self.position.y)))
@@ -144,3 +164,13 @@ class Gegner:
 
     def zeichnen(self, fenster):
         fenster.blit(self.bild, self.rect)
+
+
+def beruehren(erstes, zweites):
+    """Kreiskollision: Mittelpunktabstand höchstens Summe der Radien.
+
+    Quadrierte Abstände sparen die Quadratwurzel; Berührung zählt als Treffer.
+    """
+    return erstes.position.distance_squared_to(zweites.position) <= (
+        erstes.radius + zweites.radius
+    ) ** 2

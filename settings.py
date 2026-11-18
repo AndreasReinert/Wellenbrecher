@@ -43,5 +43,34 @@ GEGNER_TYPEN = {
     "panzer": {"tempo": 70, "leben": 6, "radius": 40,
                "bildname": "panzer", "ersatzfarbe": (170, 120, 230)},
 }
-GEGNER_SPAWN_PAUSE = 2.0  # Sekunden zwischen Testgegnern
-GEGNER_TESTTYP = "jaeger"
+# Wellen: Anzahl, Freischaltungen und Zeiten in Sekunden.
+WELLEN_STARTANZAHL = 6
+WELLEN_ZUWACHS = 3
+WELLEN_SPAWN_PAUSE = 2.0
+WELLEN_PAUSE = 2.0
+WELLEN_TEXT_DAUER = 2.0
+GEGNER_AB_WELLE = {"jaeger": 1, "flitzer": 2, "panzer": 3}
+
+# Treffer und Schutzzeit; Radien unabhängig von der Bilddrehung.
+SPIELER_RADIUS = SPIELER_GROESSE / 2
+SPIELER_STARTLEBEN = 5
+SPIELER_UNVERWUNDBAR_DAUER = 1.0
+SPIELER_BLINK_PAUSE = 0.1  # Sekunden pro sichtbarer/unsichtbarer Phase
+SCHUSS_RADIUS = SCHUSS_GROESSE / 2
+SCHUSS_SCHADEN = 1
+GEGNER_KONTAKTSCHADEN = 1
+
+# Anzeigen: Maße in Pixeln, Farben als RGB.
+UI_RAND = 24
+LEISTE_GROESSE = (240, 22)
+LEISTE_RAHMEN = 2
+LEISTE_TEXT_ABSTAND = 8
+LEISTE_HINTERGRUND = (35, 48, 65)
+LEISTE_FARBE = (70, 220, 150)
+UI_TEXTFARBE = (220, 240, 255)
+UI_SCHRIFTGROESSE = 26
+WELLEN_SCHRIFTGROESSE = 76
+GAME_OVER_SCHRIFTGROESSE = 80
+GAME_OVER_ABSTAND = 64
+GAME_OVER_FARBE = (255, 100, 100)
+GAME_OVER_ABDUNKLUNG = 190
