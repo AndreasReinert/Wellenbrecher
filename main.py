@@ -1,4 +1,4 @@
-"""Startpunkt: python main.py (benötigt pygame)."""
+"""Startpunkt: python main.py (benötigt pygame-ce)."""
 import pygame
 
 from assets import hintergrund
@@ -14,6 +14,8 @@ def main():
         uhr = pygame.time.Clock()
         hintergrundbild = hintergrund(FENSTERGROESSE)
         spieler = Spieler(FENSTERGROESSE)
+        schuesse = []
+        grenzen = fenster.get_rect()
         laeuft = True
 
         while laeuft:
@@ -29,10 +31,22 @@ def main():
             if not laeuft:
                 break
 
+            mausposition = pygame.mouse.get_pos()
             spieler.aktualisieren(
-                delta_time, pygame.key.get_pressed(), pygame.mouse.get_pos()
+                delta_time, pygame.key.get_pressed(), mausposition
             )
+            for schuss in schuesse:
+                schuss.aktualisieren(delta_time)
+            schuesse = [schuss for schuss in schuesse if schuss.im_fenster(grenzen)]
+
+            if pygame.mouse.get_pressed()[0]:
+                schuss = spieler.feuern(mausposition)
+                if schuss is not None:
+                    schuesse.append(schuss)
+
             fenster.blit(hintergrundbild, (0, 0))
+            for schuss in schuesse:
+                schuss.zeichnen(fenster)
             spieler.zeichnen(fenster)
             pygame.display.flip()
     finally:
