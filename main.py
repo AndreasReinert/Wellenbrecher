@@ -2,6 +2,7 @@
 import pygame
 
 from assets import hintergrund
+from entities import Spieler
 from settings import FENSTERGROESSE, FPS, TITEL
 
 
@@ -12,6 +13,7 @@ def main():
         pygame.display.set_caption(TITEL)
         uhr = pygame.time.Clock()
         hintergrundbild = hintergrund(FENSTERGROESSE)
+        spieler = Spieler(FENSTERGROESSE)
         laeuft = True
 
         while laeuft:
@@ -27,9 +29,11 @@ def main():
             if not laeuft:
                 break
 
-            # Spiellogik hier ergänzen, z. B. x += tempo * delta_time.
-            # delta_time ist die tatsächlich vergangene Zeit in Sekunden.
+            spieler.aktualisieren(
+                delta_time, pygame.key.get_pressed(), pygame.mouse.get_pos()
+            )
             fenster.blit(hintergrundbild, (0, 0))
+            spieler.zeichnen(fenster)
             pygame.display.flip()
     finally:
         pygame.quit()
