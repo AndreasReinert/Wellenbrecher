@@ -20,6 +20,7 @@ SPIELER_FARBE = (80, 210, 255)
 
 # Schüsse: Pause in Sekunden, Tempo in Pixeln pro Sekunde.
 SCHUSS_PAUSE = 0.18
+SCHUSS_LEBENSDAUER = 5.0  # Sekunden ab dem Abfeuern
 SCHUSS_TEMPO = 700.0
 SCHUSS_GROESSE = 12
 SCHUSS_FARBE = (255, 220, 90)

@@ -41,7 +41,10 @@ def main():
             )
             for schuss in schuesse:
                 schuss.aktualisieren(delta_time)
-            schuesse = [schuss for schuss in schuesse if schuss.im_fenster(grenzen)]
+            schuesse = [
+                schuss for schuss in schuesse
+                if not schuss.abgelaufen() and schuss.im_fenster(grenzen)
+            ]
 
             if pygame.mouse.get_pressed()[0]:
                 schuss = spieler.feuern(mausposition)

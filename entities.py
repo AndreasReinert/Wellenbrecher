@@ -7,6 +7,7 @@ import assets
 from settings import (
     SPIELER_FARBE, SPIELER_GROESSE, SPIELER_TEMPO,
     SCHUSS_PAUSE, SCHUSS_TEMPO, SCHUSS_GROESSE, SCHUSS_FARBE,
+    SCHUSS_LEBENSDAUER,
 )
 
 
@@ -73,13 +74,19 @@ class Schuss:
 
     def __init__(self, position, richtung):
         self.position = pygame.Vector2(position)
+        self.alter = 0.0
         self.geschwindigkeit = pygame.Vector2(richtung).normalize() * SCHUSS_TEMPO
         self.bild = assets.bild("schuss", SCHUSS_GROESSE, SCHUSS_FARBE)
         self.rect = self.bild.get_rect(center=(round(self.position.x), round(self.position.y)))
 
     def aktualisieren(self, delta_time):
+        self.alter += delta_time
         self.position += self.geschwindigkeit * delta_time
         self.rect.center = (round(self.position.x), round(self.position.y))
+
+    def abgelaufen(self):
+        """Die Lebensdauer beginnt für jeden Schuss beim Abfeuern."""
+        return self.alter >= SCHUSS_LEBENSDAUER
 
     def im_fenster(self, grenzen):
         """Erst entfernen, wenn das gesamte Bild außerhalb liegt."""
