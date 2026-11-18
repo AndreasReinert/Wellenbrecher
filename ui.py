@@ -89,3 +89,19 @@ class Anzeigen:
             fenster.blit(text, text.get_rect(center=(x, y + versatz)))
         # Auch beim Spielende bleibt der leere Lebensbalken sichtbar.
         self.spielstand(fenster, 0, welle, besiegt)
+
+
+    def erfahrung(self, fenster, spieler):
+        """Schmale Fortschrittsleiste am unteren Rand mit aktueller Levelzahl."""
+        rand = settings.UI_RAND
+        hoehe = settings.ERFAHRUNGSLEISTE_HOEHE
+        rahmen = pygame.Rect(rand, fenster.get_height() - rand - hoehe,
+                             fenster.get_width() - rand * 2, hoehe)
+        pygame.draw.rect(fenster, settings.LEISTE_HINTERGRUND, rahmen)
+        fuellung = rahmen.copy()
+        fuellung.width = round(rahmen.width * min(
+            1.0, spieler.erfahrung / spieler.erfahrung_bedarf))
+        pygame.draw.rect(fenster, settings.ERFAHRUNGSLEISTE_FARBE, fuellung)
+        text = self.schrift.render(f"Level {spieler.level}", True, settings.UI_TEXTFARBE)
+        fenster.blit(text, text.get_rect(
+            bottomleft=(rand, rahmen.top - settings.ERFAHRUNGSLEISTE_TEXTABSTAND)))

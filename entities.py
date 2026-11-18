@@ -24,6 +24,9 @@ class Spieler:
         self.position = pygame.Vector2(self.grenzen.center)
         self.radius = SPIELER_RADIUS
         self.leben = SPIELER_STARTLEBEN
+        self.level = 1
+        self.erfahrung = 0
+        self.erfahrung_bedarf = settings.ERFAHRUNG_STARTBEDARF
         self.unverwundbar_rest = 0.0
         self.tempo = SPIELER_TEMPO
         self.schuss_wartezeit = 0.0
@@ -35,6 +38,16 @@ class Spieler:
         self.winkel = 0.0
         # Halbe Bilddiagonale: Auch gedrehte Bildecken bleiben im Fenster.
         self.rand = math.ceil(math.hypot(*self.originalbild.get_size()) / 2)
+
+    def erfahrung_sammeln(self, menge):
+        """Restpunkte behalten; jede neue Schwelle auf ganze Punkte aufrunden."""
+        self.erfahrung += menge
+        while self.erfahrung >= self.erfahrung_bedarf:
+            self.erfahrung -= self.erfahrung_bedarf
+            self.level += 1
+            self.erfahrung_bedarf = math.ceil(
+                self.erfahrung_bedarf * settings.ERFAHRUNG_WACHSTUM
+            )
 
     def aktualisieren(self, delta_time, tasten, mausposition):
         self.unverwundbar_rest = max(0.0, self.unverwundbar_rest - delta_time)
@@ -207,3 +220,34 @@ def beruehren(erstes, zweites):
     return erstes.position.distance_squared_to(zweites.position) <= (
         erstes.radius + zweites.radius
     ) ** 2
+
+
+class Kristall:
+    """Bleibt liegen, bis der Magnet greift; folgt danach bis zur Aufnahme."""
+
+    def __init__(self, position):
+        self.position = pygame.Vector2(position)
+        self.radius = settings.KRISTALL_RADIUS
+        self.angezogen = False
+        self.bild = assets.bild(
+            "kristall", self.radius * 2, settings.KRISTALL_FARBE
+        )
+
+    def aktualisieren(self, delta_time, spieler):
+        """True bedeutet aufgenommen; der Aufrufer entfernt den Kristall."""
+        richtung = spieler.position - self.position
+        abstand = richtung.length()
+        if abstand <= settings.KRISTALL_MAGNETRADIUS:
+            self.angezogen = True
+        if self.angezogen and abstand > 0:
+            weg = min(settings.KRISTALL_TEMPO * delta_time, abstand)
+            self.position += richtung / abstand * weg
+        if beruehren(self, spieler):
+            spieler.erfahrung_sammeln(settings.KRISTALL_ERFAHRUNG)
+            return True
+        return False
+
+    def zeichnen(self, fenster):
+        fenster.blit(self.bild, self.bild.get_rect(
+            center=(round(self.position.x), round(self.position.y))
+        ))

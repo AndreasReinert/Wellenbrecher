@@ -4,7 +4,7 @@ import random
 import pygame
 
 from assets import hintergrund
-from entities import Spieler, Gegner, beruehren
+from entities import Spieler, Gegner, Kristall, beruehren
 from ui import Fadenkreuz, Anzeigen
 from settings import (
     FENSTERGROESSE, FPS, TITEL,
@@ -15,7 +15,7 @@ from settings import (
 )
 
 
-def kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse):
+def kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse, kristalle):
     """Listen vor Ort bereinigen und die Anzahl neu besiegter Gegner liefern."""
     verbleibende_schuesse = []
     besiegt = 0
@@ -25,6 +25,7 @@ def kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse):
                 feind.leben = max(0, feind.leben - SCHUSS_SCHADEN)
                 if feind.leben == 0:
                     besiegt += 1
+                    kristalle.append(Kristall(feind.position))
                 # Jeder Schuss trifft höchstens einen Gegner und verschwindet.
                 break
         else:
@@ -88,7 +89,7 @@ class Wellen:
 
 def neues_spiel():
     """Alle veränderlichen Rundendaten frisch anlegen, Bildcache behalten."""
-    return Spieler(FENSTERGROESSE), [], [], [], Wellen(), 0, "spiel"
+    return Spieler(FENSTERGROESSE), [], [], [], [], Wellen(), 0, "spiel"
 
 
 def main():
@@ -102,7 +103,7 @@ def main():
         anzeigen = Anzeigen()
         uhr = pygame.time.Clock()
         hintergrundbild = hintergrund(FENSTERGROESSE)
-        spieler, schuesse, gegner, gegnerschuesse, wellen, besiegte_gegner, zustand = neues_spiel()
+        spieler, schuesse, gegner, gegnerschuesse, kristalle, wellen, besiegte_gegner, zustand = neues_spiel()
         grenzen = fenster.get_rect()
         laeuft = True
 
@@ -117,7 +118,7 @@ def main():
                     laeuft = False
                 elif (ereignis.type == pygame.KEYDOWN
                       and ereignis.key == pygame.K_r and zustand == "game_over"):
-                    spieler, schuesse, gegner, gegnerschuesse, wellen, besiegte_gegner, zustand = neues_spiel()
+                    spieler, schuesse, gegner, gegnerschuesse, kristalle, wellen, besiegte_gegner, zustand = neues_spiel()
                     # Keine Zeit der alten Runde auf die neue Runde übertragen.
                     delta_time = 0.0
 
@@ -154,7 +155,10 @@ def main():
                     if schuss is not None:
                         schuesse.append(schuss)
 
-                besiegte_gegner += kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse)
+                besiegte_gegner += kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse, kristalle)
+                if spieler.leben > 0:
+                    kristalle[:] = [kristall for kristall in kristalle
+                                   if not kristall.aktualisieren(delta_time, spieler)]
                 wellen.abschluss_pruefen(gegner)
                 if spieler.leben <= 0:
                     zustand = "game_over"
@@ -164,6 +168,8 @@ def main():
             )
 
             fenster.blit(hintergrundbild, (0, 0))
+            for kristall in kristalle:
+                kristall.zeichnen(fenster)
             for feind in gegner:
                 feind.zeichnen(fenster)
             for schuss in schuesse:
@@ -176,6 +182,7 @@ def main():
                 anzeigen.game_over(fenster, wellen.nummer, besiegte_gegner)
             elif wellen.anzeige_zeit > 0:
                 anzeigen.welle(fenster, wellen.nummer)
+            anzeigen.erfahrung(fenster, spieler)
             if pygame.mouse.get_focused():
                 fadenkreuz.zeichnen(fenster, mausposition)
             pygame.display.flip()

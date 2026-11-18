@@ -90,3 +90,15 @@ GEGNER_WAFFEN = {
     "panzer": {"pause": 2.0, "radius": 12, "winkel": (-20, 0, 20),
                "bildname": "schuss_panzer", "farbe": (220, 130, 255)},
 }
+
+# Kristalle und Erfahrung: Schwellen werden je Level auf ganze Punkte aufgerundet.
+KRISTALL_RADIUS = 8
+KRISTALL_FARBE = (80, 255, 210)
+KRISTALL_MAGNETRADIUS = 160.0
+KRISTALL_TEMPO = 450.0
+KRISTALL_ERFAHRUNG = 1
+ERFAHRUNG_STARTBEDARF = 5
+ERFAHRUNG_WACHSTUM = 1.25
+ERFAHRUNGSLEISTE_HOEHE = 10
+ERFAHRUNGSLEISTE_FARBE = (70, 210, 255)
+ERFAHRUNGSLEISTE_TEXTABSTAND = 6
