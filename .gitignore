@@ -1,0 +1,47 @@
+# Virtuelle Python-Umgebungen
+.venv/
+venv/
+env/
+ENV/
+
+# Python-Cache und kompilierte Dateien
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Tests, Coverage und Werkzeug-Caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Build- und Paketdateien
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Zugangsdaten und lokale Umgebungsvariablen
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Lokale VS-Code-Einstellungen
+.vscode/
+
+# Jupyter-Checkpoints
+.ipynb_checkpoints/
+
+# Betriebssystem-Dateien
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logdateien
+*.log
