@@ -3,14 +3,18 @@ import pygame
 
 from assets import hintergrund
 from entities import Spieler
+from ui import Fadenkreuz
 from settings import FENSTERGROESSE, FPS, TITEL
 
 
 def main():
     pygame.init()
+    maus_war_sichtbar = pygame.mouse.get_visible()
     try:
         fenster = pygame.display.set_mode(FENSTERGROESSE)
         pygame.display.set_caption(TITEL)
+        pygame.mouse.set_visible(False)
+        fadenkreuz = Fadenkreuz()
         uhr = pygame.time.Clock()
         hintergrundbild = hintergrund(FENSTERGROESSE)
         spieler = Spieler(FENSTERGROESSE)
@@ -48,8 +52,11 @@ def main():
             for schuss in schuesse:
                 schuss.zeichnen(fenster)
             spieler.zeichnen(fenster)
+            if pygame.mouse.get_focused():
+                fadenkreuz.zeichnen(fenster, mausposition)
             pygame.display.flip()
     finally:
+        pygame.mouse.set_visible(maus_war_sichtbar)
         pygame.quit()
 
 
