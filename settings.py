@@ -102,3 +102,36 @@ ERFAHRUNG_WACHSTUM = 1.25
 ERFAHRUNGSLEISTE_HOEHE = 10
 ERFAHRUNGSLEISTE_FARBE = (70, 210, 255)
 ERFAHRUNGSLEISTE_TEXTABSTAND = 6
+
+
+# Upgrades verändern ausschließlich Werte der aktuellen Spielerinstanz.
+UPGRADES = [
+    {"id": "schaden", "name": "Schaden", "wirkung": "+1 Schaden pro Schuss", "icon": "icon_schaden", "wert": 1},
+    {"id": "feuerrate", "name": "Feuerrate", "wirkung": "Feuerpause -15 %", "icon": "icon_feuerrate", "wert": 0.85},
+    {"id": "tempo", "name": "Tempo", "wirkung": "Bewegungstempo +12 %", "icon": "icon_tempo", "wert": 1.12},
+    {"id": "mehrfach", "name": "Mehrfachschuss", "wirkung": "+1 Schuss (maximal 5)", "icon": "icon_mehrfach", "wert": 1, "maximum": 5},
+    {"id": "leben", "name": "Reparatur", "wirkung": "+1 Leben (maximal 5)", "icon": "icon_leben", "wert": 1, "maximum": 5},
+    {"id": "magnet", "name": "Magnet", "wirkung": "Magnetradius +40 %", "icon": "icon_magnet", "wert": 1.4},
+]
+MEHRFACHSCHUSS_START = 1
+MEHRFACHSCHUSS_WINKEL = 12.0
+UPGRADE_KARTENANZAHL = 3
+UPGRADE_KARTENGROESSE = (300, 320)
+UPGRADE_KARTENABSTAND = 28
+UPGRADE_ANHEBUNG = 12
+UPGRADE_ECKRADIUS = 18
+UPGRADE_RAHMEN = 2
+UPGRADE_ICON_GROESSE = 80
+UPGRADE_ICON_Y = 88
+UPGRADE_NAME_Y = 176
+UPGRADE_WIRKUNG_Y = 226
+UPGRADE_TITEL_Y = 112
+UPGRADE_HINWEIS_Y = 610
+UPGRADE_TITELGROESSE = 54
+UPGRADE_NAMEGROESSE = 34
+UPGRADE_TEXTGROESSE = 24
+UPGRADE_FARBE = (22, 40, 65)
+UPGRADE_AKTIVFARBE = (34, 72, 99)
+UPGRADE_LEUCHTFARBE = (100, 235, 255)
+UPGRADE_ICONFARBE = (90, 215, 235)
+UPGRADE_LEUCHTSCHICHTEN = ((12, 18), (8, 28), (4, 48))

@@ -5,7 +5,7 @@ import pygame
 
 from assets import hintergrund
 from entities import Spieler, Gegner, Kristall, beruehren
-from ui import Fadenkreuz, Anzeigen
+from ui import Fadenkreuz, Anzeigen, UpgradeKarten
 from settings import (
     FENSTERGROESSE, FPS, TITEL,
     WELLEN_STARTANZAHL, WELLEN_ZUWACHS, WELLEN_SPAWN_PAUSE,
@@ -22,7 +22,7 @@ def kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse, kristalle):
     for schuss in schuesse:
         for feind in gegner:
             if feind.leben > 0 and beruehren(schuss, feind):
-                feind.leben = max(0, feind.leben - SCHUSS_SCHADEN)
+                feind.leben = max(0, feind.leben - schuss.schaden)
                 if feind.leben == 0:
                     besiegt += 1
                     kristalle.append(Kristall(feind.position))
@@ -101,6 +101,7 @@ def main():
         pygame.mouse.set_visible(False)
         fadenkreuz = Fadenkreuz()
         anzeigen = Anzeigen()
+        upgrade_karten = UpgradeKarten()
         uhr = pygame.time.Clock()
         hintergrundbild = hintergrund(FENSTERGROESSE)
         spieler, schuesse, gegner, gegnerschuesse, kristalle, wellen, besiegte_gegner, zustand = neues_spiel()
@@ -119,8 +120,24 @@ def main():
                 elif (ereignis.type == pygame.KEYDOWN
                       and ereignis.key == pygame.K_r and zustand == "game_over"):
                     spieler, schuesse, gegner, gegnerschuesse, kristalle, wellen, besiegte_gegner, zustand = neues_spiel()
+                    upgrade_karten.leeren()
                     # Keine Zeit der alten Runde auf die neue Runde übertragen.
                     delta_time = 0.0
+
+                elif (ereignis.type == pygame.MOUSEBUTTONDOWN
+                      and ereignis.button == 1 and zustand == "upgrade"):
+                    upgrade = upgrade_karten.auswahl(ereignis.pos)
+                    if upgrade is not None and spieler.upgrade_anwenden(upgrade):
+                        spieler.upgrades_offen -= 1
+                        if spieler.upgrades_offen > 0:
+                            upgrade_karten.oeffnen(spieler)
+                        else:
+                            upgrade_karten.leeren()
+                            zustand = "spiel"
+                        # Auswahlklick nicht als Schuss verwenden, keine Pausenzeit übernehmen.
+                        delta_time = 0.0
+                        spieler.schuss_wartezeit = spieler.schuss_pause
+                        break
 
             if not laeuft:
                 break
@@ -151,9 +168,7 @@ def main():
                 ]
 
                 if pygame.mouse.get_pressed()[0]:
-                    schuss = spieler.feuern(mausposition)
-                    if schuss is not None:
-                        schuesse.append(schuss)
+                    schuesse.extend(spieler.feuern(mausposition))
 
                 besiegte_gegner += kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse, kristalle)
                 if spieler.leben > 0:
@@ -162,6 +177,9 @@ def main():
                 wellen.abschluss_pruefen(gegner)
                 if spieler.leben <= 0:
                     zustand = "game_over"
+                elif spieler.upgrades_offen > 0:
+                    zustand = "upgrade"
+                    upgrade_karten.oeffnen(spieler)
             # Werte zum Testen im Fenstertitel, ohne zusätzliche Spielgrafik.
             pygame.display.set_caption(
                 f"{TITEL} | Welle: {wellen.nummer} | Besiegt: {besiegte_gegner}"
@@ -180,9 +198,11 @@ def main():
             anzeigen.spielstand(fenster, spieler.leben, wellen.nummer, besiegte_gegner)
             if zustand == "game_over":
                 anzeigen.game_over(fenster, wellen.nummer, besiegte_gegner)
-            elif wellen.anzeige_zeit > 0:
+            elif zustand == "spiel" and wellen.anzeige_zeit > 0:
                 anzeigen.welle(fenster, wellen.nummer)
             anzeigen.erfahrung(fenster, spieler)
+            if zustand == "upgrade":
+                upgrade_karten.zeichnen(fenster, mausposition)
             if pygame.mouse.get_focused():
                 fadenkreuz.zeichnen(fenster, mausposition)
             pygame.display.flip()

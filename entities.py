@@ -24,6 +24,11 @@ class Spieler:
         self.position = pygame.Vector2(self.grenzen.center)
         self.radius = SPIELER_RADIUS
         self.leben = SPIELER_STARTLEBEN
+        self.schaden = settings.SCHUSS_SCHADEN
+        self.schuss_pause = SCHUSS_PAUSE
+        self.schuss_anzahl = settings.MEHRFACHSCHUSS_START
+        self.magnetradius = settings.KRISTALL_MAGNETRADIUS
+        self.upgrades_offen = 0
         self.level = 1
         self.erfahrung = 0
         self.erfahrung_bedarf = settings.ERFAHRUNG_STARTBEDARF
@@ -45,6 +50,7 @@ class Spieler:
         while self.erfahrung >= self.erfahrung_bedarf:
             self.erfahrung -= self.erfahrung_bedarf
             self.level += 1
+            self.upgrades_offen += 1
             self.erfahrung_bedarf = math.ceil(
                 self.erfahrung_bedarf * settings.ERFAHRUNG_WACHSTUM
             )
@@ -76,16 +82,43 @@ class Spieler:
             center=(round(self.position.x), round(self.position.y))
         )
 
+    def upgrade_verfuegbar(self, upgrade):
+        if upgrade["id"] == "mehrfach":
+            return self.schuss_anzahl < upgrade["maximum"]
+        if upgrade["id"] == "leben":
+            return self.leben < upgrade["maximum"]
+        return True
+
+    def upgrade_anwenden(self, upgrade):
+        if not self.upgrade_verfuegbar(upgrade):
+            return False
+        art, wert = upgrade["id"], upgrade["wert"]
+        if art == "schaden":
+            self.schaden += wert
+        elif art == "feuerrate":
+            self.schuss_pause *= wert
+            self.schuss_wartezeit = min(self.schuss_wartezeit, self.schuss_pause)
+        elif art == "tempo":
+            self.tempo *= wert
+        elif art == "mehrfach":
+            self.schuss_anzahl = min(upgrade["maximum"], self.schuss_anzahl + wert)
+        elif art == "leben":
+            self.leben = min(upgrade["maximum"], self.leben + wert)
+        elif art == "magnet":
+            self.magnetradius *= wert
+        return True
+
     def feuern(self, mausposition):
-        """Gibt einen neuen Schuss zurück, sobald die Feuerpause vorbei ist."""
+        """Eine symmetrische Salve mit beim Abschuss gespeicherten Schadenswerten."""
         if self.schuss_wartezeit > 0:
-            return None
+            return []
         richtung = pygame.Vector2(mausposition) - self.position
-        # Direkt auf dem Schiff gibt es keine eindeutige Zielrichtung.
         if richtung.length_squared() == 0:
-            return None
-        self.schuss_wartezeit = SCHUSS_PAUSE
-        return Schuss(self.position, richtung)
+            return []
+        self.schuss_wartezeit = self.schuss_pause
+        return [Schuss(self.position, richtung.rotate(
+            (index - (self.schuss_anzahl - 1) / 2) * settings.MEHRFACHSCHUSS_WINKEL
+        ), self.schaden) for index in range(self.schuss_anzahl)]
 
     def schaden_nehmen(self, schaden):
         """Nur ein Treffer pro Schutzzeit; Lebenspunkte fallen nicht unter null."""
@@ -106,7 +139,8 @@ class Spieler:
 class Schuss:
     """Fliegt geradlinig in die beim Abfeuern gewählte Richtung."""
 
-    def __init__(self, position, richtung):
+    def __init__(self, position, richtung, schaden=settings.SCHUSS_SCHADEN):
+        self.schaden = schaden
         self.position = pygame.Vector2(position)
         self.alter = 0.0
         self.radius = SCHUSS_RADIUS
@@ -237,7 +271,7 @@ class Kristall:
         """True bedeutet aufgenommen; der Aufrufer entfernt den Kristall."""
         richtung = spieler.position - self.position
         abstand = richtung.length()
-        if abstand <= settings.KRISTALL_MAGNETRADIUS:
+        if abstand <= spieler.magnetradius:
             self.angezogen = True
         if self.angezogen and abstand > 0:
             weg = min(settings.KRISTALL_TEMPO * delta_time, abstand)

@@ -1,4 +1,7 @@
 """Anzeigen und Zielhilfe für Wellenbrecher."""
+import random
+
+import assets
 import pygame
 import settings
 
@@ -105,3 +108,69 @@ class Anzeigen:
         text = self.schrift.render(f"Level {spieler.level}", True, settings.UI_TEXTFARBE)
         fenster.blit(text, text.get_rect(
             bottomleft=(rand, rahmen.top - settings.ERFAHRUNGSLEISTE_TEXTABSTAND)))
+
+
+class UpgradeKarten:
+    """Zufällige, verschiedene Angebote; Trefferflächen folgen der Anhebung."""
+
+    def __init__(self):
+        self.karten = []
+        self.titel = pygame.font.Font(None, settings.UPGRADE_TITELGROESSE)
+        self.name = pygame.font.Font(None, settings.UPGRADE_NAMEGROESSE)
+        self.text = pygame.font.Font(None, settings.UPGRADE_TEXTGROESSE)
+        self.schleier = pygame.Surface(settings.FENSTERGROESSE, pygame.SRCALPHA)
+        self.schleier.fill((0, 0, 0, settings.GAME_OVER_ABDUNKLUNG))
+
+    def leeren(self):
+        self.karten = []
+
+    def oeffnen(self, spieler):
+        verfuegbar = [u for u in settings.UPGRADES if spieler.upgrade_verfuegbar(u)]
+        self.karten = random.sample(verfuegbar, min(settings.UPGRADE_KARTENANZAHL, len(verfuegbar)))
+
+    def rechtecke(self, mausposition):
+        breite, hoehe = settings.UPGRADE_KARTENGROESSE
+        abstand = settings.UPGRADE_KARTENABSTAND
+        gesamt = len(self.karten) * breite + max(0, len(self.karten) - 1) * abstand
+        links = (settings.BREITE - gesamt) // 2
+        oben = (settings.HOEHE - hoehe) // 2
+        ergebnis = []
+        for index in range(len(self.karten)):
+            rect = pygame.Rect(links + index * (breite + abstand), oben, breite, hoehe)
+            # Erweiterte Hoverzone verhindert Flackern am angehobenen Rand.
+            zone = rect.union(rect.move(0, -settings.UPGRADE_ANHEBUNG))
+            aktiv = zone.collidepoint(mausposition)
+            if aktiv:
+                rect.y -= settings.UPGRADE_ANHEBUNG
+            ergebnis.append((rect, aktiv))
+        return ergebnis
+
+    def auswahl(self, mausposition):
+        for upgrade, (rect, _) in zip(self.karten, self.rechtecke(mausposition)):
+            if rect.collidepoint(mausposition):
+                return upgrade
+        return None
+
+    def zeichnen(self, fenster, mausposition):
+        fenster.blit(self.schleier, (0, 0))
+        titel = self.titel.render("Level aufgestiegen!", True, settings.UI_TEXTFARBE)
+        fenster.blit(titel, titel.get_rect(center=(settings.BREITE // 2, settings.UPGRADE_TITEL_Y)))
+        for upgrade, (rect, aktiv) in zip(self.karten, self.rechtecke(mausposition)):
+            if aktiv:
+                leuchten = pygame.Surface(settings.FENSTERGROESSE, pygame.SRCALPHA)
+                for rand, alpha in settings.UPGRADE_LEUCHTSCHICHTEN:
+                    pygame.draw.rect(leuchten, (*settings.UPGRADE_LEUCHTFARBE, alpha),
+                                     rect.inflate(rand * 2, rand * 2), border_radius=settings.UPGRADE_ECKRADIUS)
+                fenster.blit(leuchten, (0, 0))
+            pygame.draw.rect(fenster, settings.UPGRADE_AKTIVFARBE if aktiv else settings.UPGRADE_FARBE,
+                             rect, border_radius=settings.UPGRADE_ECKRADIUS)
+            pygame.draw.rect(fenster, settings.UPGRADE_LEUCHTFARBE if aktiv else settings.LEISTE_HINTERGRUND,
+                             rect, settings.UPGRADE_RAHMEN, border_radius=settings.UPGRADE_ECKRADIUS)
+            icon = assets.bild(upgrade["icon"], settings.UPGRADE_ICON_GROESSE, settings.UPGRADE_ICONFARBE)
+            fenster.blit(icon, icon.get_rect(center=(rect.centerx, rect.top + settings.UPGRADE_ICON_Y)))
+            for schrift, inhalt, y in ((self.name, upgrade["name"], settings.UPGRADE_NAME_Y),
+                                      (self.text, upgrade["wirkung"], settings.UPGRADE_WIRKUNG_Y)):
+                text = schrift.render(inhalt, True, settings.UI_TEXTFARBE)
+                fenster.blit(text, text.get_rect(center=(rect.centerx, rect.top + y)))
+        hinweis = self.text.render("Wähle ein Upgrade mit Linksklick – die Spielwelt pausiert.", True, settings.UI_TEXTFARBE)
+        fenster.blit(hinweis, hinweis.get_rect(center=(settings.BREITE // 2, settings.UPGRADE_HINWEIS_Y)))
