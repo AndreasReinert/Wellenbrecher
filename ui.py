@@ -153,7 +153,7 @@ class UpgradeKarten:
 
     def zeichnen(self, fenster, mausposition):
         fenster.blit(self.schleier, (0, 0))
-        titel = self.titel.render("Level aufgestiegen!", True, settings.UI_TEXTFARBE)
+        titel = self.titel.render(getattr(self, "ueberschrift", "Level aufgestiegen!"), True, settings.UI_TEXTFARBE)
         fenster.blit(titel, titel.get_rect(center=(settings.BREITE // 2, settings.UPGRADE_TITEL_Y)))
         for upgrade, (rect, aktiv) in zip(self.karten, self.rechtecke(mausposition)):
             if aktiv:
@@ -172,7 +172,7 @@ class UpgradeKarten:
                                       (self.text, upgrade["wirkung"], settings.UPGRADE_WIRKUNG_Y)):
                 text = schrift.render(inhalt, True, settings.UI_TEXTFARBE)
                 fenster.blit(text, text.get_rect(center=(rect.centerx, rect.top + y)))
-        hinweis = self.text.render("Wähle ein Upgrade mit Linksklick – die Spielwelt pausiert.", True, settings.UI_TEXTFARBE)
+        hinweis = self.text.render(getattr(self, "hinweis", "Wähle ein Upgrade mit Linksklick – die Spielwelt pausiert."), True, settings.UI_TEXTFARBE)
         fenster.blit(hinweis, hinweis.get_rect(center=(settings.BREITE // 2, settings.UPGRADE_HINWEIS_Y)))
 
 
@@ -226,3 +226,51 @@ class Startmenue:
             pygame.draw.rect(fenster, settings.MENUE_AKZENT if aktiv else settings.MENUE_TEXT_FARBE,
                              rect, settings.MENUE_RAND, border_radius=settings.MENUE_RADIUS)
             self._text(fenster, text, rect.centery, self.schrift)
+
+
+class ModusKarten(UpgradeKarten):
+    """Moduskarten mit unabhängigen, dauerhaft gespeicherten Endless-Rekorden."""
+
+    def __init__(self, rekord=None):
+        super().__init__()
+        self.rekord = rekord if rekord is not None else {"besiegte_gegner": 0, "geschaffte_wellen": 0}
+        self.karten = settings.MODUS_KARTEN
+        self.ueberschrift = "Wähle deinen Spielmodus"
+        self.hinweis = "Linksklick auf eine Karte startet eine neue Runde."
+
+    def zeichnen(self, fenster, mausposition):
+        super().zeichnen(fenster, mausposition)
+        for karte, (rect, aktiv) in zip(self.karten, self.rechtecke(mausposition)):
+            if karte["id"] != "endless":
+                continue
+            zeilen = (f"Rekord: {self.rekord['besiegte_gegner']} besiegte Gegner",
+                      f"Geschaffte Wellen: {self.rekord['geschaffte_wellen']}")
+            for index, inhalt in enumerate(zeilen):
+                text = self.text.render(inhalt, True, settings.MENUE_AKZENT)
+                fenster.blit(text, text.get_rect(center=(rect.centerx,
+                    rect.top + settings.HIGHSCORE_TEXT_Y + index * settings.HIGHSCORE_ZEILENABSTAND)))
+
+
+def bossleiste(fenster, boss):
+    schrift = pygame.font.Font(None, settings.UPGRADE_NAMEGROESSE)
+    text = schrift.render("Mutterschiff", True, settings.UI_TEXTFARBE)
+    fenster.blit(text, text.get_rect(center=(settings.BREITE // 2, settings.BOSS_NAME_Y)))
+    rect = pygame.Rect(0, settings.BOSS_LEISTE_Y, settings.BOSS_LEISTE_BREITE, settings.BOSS_LEISTE_HOEHE)
+    rect.centerx = settings.BREITE // 2
+    pygame.draw.rect(fenster, settings.LEISTE_HINTERGRUND, rect)
+    fuellung = rect.copy()
+    fuellung.width = round(rect.width * max(0, boss.leben) / settings.BOSS_LEBEN)
+    pygame.draw.rect(fenster, settings.BOSS_FARBE, fuellung)
+
+
+def sieganzeige(fenster, spielzeit, besiegt):
+    schleier = pygame.Surface(settings.FENSTERGROESSE, pygame.SRCALPHA)
+    schleier.fill((0, 0, 0, settings.GAME_OVER_ABDUNKLUNG))
+    fenster.blit(schleier, (0, 0))
+    minuten, sekunden = divmod(int(spielzeit), 60)
+    texte = ("SIEG!", f"Spielzeit: {minuten:02d}:{sekunden:02d}",
+             f"Besiegte Gegner: {besiegt}", "R = neue Runde")
+    for index, (text, y) in enumerate(zip(texte, settings.SIEG_ZEILEN_Y)):
+        schrift = pygame.font.Font(None, settings.MENUE_TITEL_GROESSE if index == 0 else settings.UPGRADE_NAMEGROESSE)
+        bild = schrift.render(text, True, settings.UI_TEXTFARBE)
+        fenster.blit(bild, bild.get_rect(center=(settings.BREITE // 2, y)))

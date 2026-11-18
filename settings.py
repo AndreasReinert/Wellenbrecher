@@ -189,3 +189,36 @@ MENUE_HILFE_Y = 290
 MENUE_HILFE_ABSTAND = 48
 MENUE_ZURUECK_Y = 600
 MENUE_ABDUNKLUNG = 175
+
+# Spielmodi und Classic-Finale
+CLASSIC_BOSS_WELLE = 5
+BOSS_LEBEN = 1200
+BOSS_RADIUS = 60
+BOSS_TEMPO = 70.0
+BOSS_Y = 145
+BOSS_RAND = 35
+BOSS_RING_PAUSE = 3.0
+BOSS_HILFE_PAUSE = 8.0
+BOSS_RING_ANZAHL = 16
+BOSS_HILFE_ANZAHL = 4
+BOSS_SCHUSS_TEMPO = 130.0
+BOSS_SCHUSS_RADIUS = 12
+BOSS_FARBE = (235, 65, 150)
+BOSS_EXPLOSIONEN = 10
+BOSS_EXPLOSIONSRADIUS = 80
+BOSS_LEISTE_BREITE = 540
+BOSS_LEISTE_HOEHE = 22
+BOSS_LEISTE_Y = 56
+BOSS_NAME_Y = 30
+SIEG_ZEILEN_Y = (230, 325, 380, 470)
+MODUS_KARTEN = [
+    {"id": "classic", "name": "Classic", "wirkung": "5 Wellen • Besiege den Boss", "icon": "panzer"},
+    {"id": "endless", "name": "Endless", "wirkung": "Endlose Wellen • Überlebe!", "icon": "jaeger"},
+]
+GEGNER_TYPEN["boss"] = {"tempo": BOSS_TEMPO, "leben": BOSS_LEBEN,
+    "radius": BOSS_RADIUS, "bildname": "mutterschiff", "ersatzfarbe": BOSS_FARBE}
+
+# Dauerhafte Rekorde liegen außerhalb des temporären PyInstaller-Ordners.
+HIGHSCORE_DATEI = Path.home() / ".wellenbrecher" / "highscore.json"
+HIGHSCORE_TEXT_Y = 267
+HIGHSCORE_ZEILENABSTAND = 25

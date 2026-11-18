@@ -1,12 +1,13 @@
 """Startpunkt: python main.py (benötigt pygame-ce)."""
 import random
+import highscore
 
 import pygame
 import settings
 
 from assets import hintergrund, sounds_laden, sound_spielen
-from entities import Spieler, Gegner, Kristall, Partikelsystem, beruehren
-from ui import Fadenkreuz, Anzeigen, UpgradeKarten, Startmenue
+from entities import Spieler, Gegner, Kristall, Partikelsystem, beruehren, Boss
+from ui import Fadenkreuz, Anzeigen, UpgradeKarten, Startmenue, ModusKarten, bossleiste, sieganzeige
 from settings import (
     FENSTERGROESSE, FPS, TITEL,
     WELLEN_STARTANZAHL, WELLEN_ZUWACHS, WELLEN_SPAWN_PAUSE,
@@ -28,6 +29,11 @@ def kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse, kristalle, pa
                     besiegt += 1
                     kristalle.append(Kristall(feind.position))
                     partikel.explosion(feind.position, feind.typ)
+                    if isinstance(feind, Boss):
+                        for _ in range(settings.BOSS_EXPLOSIONEN):
+                            versatz = pygame.Vector2(random.uniform(-settings.BOSS_EXPLOSIONSRADIUS, settings.BOSS_EXPLOSIONSRADIUS),
+                                                     random.uniform(-settings.BOSS_EXPLOSIONSRADIUS, settings.BOSS_EXPLOSIONSRADIUS))
+                            partikel.explosion(feind.position + versatz, feind.typ)
                     sound_spielen("explosion")
                 # Jeder Schuss trifft höchstens einen Gegner und verschwindet.
                 break
@@ -52,8 +58,11 @@ def kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse, kristalle, pa
 class Wellen:
     """Erst nach allen Spawns und besiegten Gegnern beginnt die Wellenpause."""
 
-    def __init__(self):
+    def __init__(self, modus="endless"):
+        self.modus = modus
+        self.boss = None
         self.nummer = 0
+        self.geschafft = 0
         self.pause = None
         self.starten()
 
@@ -64,6 +73,8 @@ class Wellen:
         # Gleichmäßig mischen: freigeschaltete Typen sind sicher vertreten.
         self.wartend = [typen[index % len(typen)] for index in range(anzahl)]
         random.shuffle(self.wartend)
+        if self.modus == "classic" and self.nummer == settings.CLASSIC_BOSS_WELLE:
+            self.wartend = ["boss"]
         self.spawn_zeit = 0.0
         self.anzeige_zeit = WELLEN_TEXT_DAUER
         self.pause = None
@@ -80,19 +91,23 @@ class Wellen:
             if self.spawn_zeit <= 0:
                 # Eine Gruppe gleichzeitig; eine Restgruppe bleibt kleiner.
                 for _ in range(min(WELLEN_GRUPPENGROESSE, len(self.wartend))):
-                    feind = Gegner(self.wartend.pop(), FENSTERGROESSE)
+                    typ = self.wartend.pop()
+                    feind = Boss(FENSTERGROESSE) if typ == "boss" else Gegner(typ, FENSTERGROESSE)
+                    if typ == "boss":
+                        self.boss = feind
                     feind.aktualisieren(0.0, spielerposition)
                     gegner.append(feind)
                 self.spawn_zeit = WELLEN_SPAWN_PAUSE
 
     def abschluss_pruefen(self, gegner):
-        if not self.wartend and not gegner and self.pause is None:
+        if self.boss is None and not self.wartend and not gegner and self.pause is None:
+            self.geschafft = self.nummer
             self.pause = WELLEN_PAUSE
 
 
-def neues_spiel():
+def neues_spiel(modus="endless"):
     """Alle veränderlichen Rundendaten frisch anlegen, Bildcache behalten."""
-    return Spieler(FENSTERGROESSE), [], [], [], [], Partikelsystem(), Wellen(), 0, "spiel"
+    return Spieler(FENSTERGROESSE), [], [], [], [], Partikelsystem(), Wellen(modus), 0, "spiel"
 
 
 def main():
@@ -111,6 +126,10 @@ def main():
         spieler, schuesse, gegner, gegnerschuesse, kristalle, partikel, wellen, besiegte_gegner, zustand = neues_spiel()
         zustand = "menue"
         startmenue = Startmenue()
+        rekord = highscore.laden()
+        modus_karten = ModusKarten(rekord)
+        modus = "endless"
+        spielzeit = 0.0
         welt = pygame.Surface(FENSTERGROESSE)
         versatz = (0, 0)
         grenzen = fenster.get_rect()
@@ -126,8 +145,9 @@ def main():
                 elif ereignis.type == pygame.KEYDOWN and ereignis.key == pygame.K_ESCAPE:
                     laeuft = False
                 elif (ereignis.type == pygame.KEYDOWN
-                      and ereignis.key == pygame.K_r and zustand == "game_over"):
-                    spieler, schuesse, gegner, gegnerschuesse, kristalle, partikel, wellen, besiegte_gegner, zustand = neues_spiel()
+                      and ereignis.key == pygame.K_r and zustand in ("game_over", "sieg")):
+                    spieler, schuesse, gegner, gegnerschuesse, kristalle, partikel, wellen, besiegte_gegner, zustand = neues_spiel(modus)
+                    spielzeit = 0.0
                     versatz = (0, 0)
                     upgrade_karten.leeren()
                     # Keine Zeit der alten Runde auf die neue Runde übertragen.
@@ -137,15 +157,25 @@ def main():
                       and ereignis.button == 1 and zustand in ("menue", "steuerung")):
                     aktion = startmenue.auswahl(ereignis.pos, zustand)
                     if aktion == "Spielen":
-                        spieler, schuesse, gegner, gegnerschuesse, kristalle, partikel, wellen, besiegte_gegner, zustand = neues_spiel()
-                        delta_time = 0.0
-                        spieler.schuss_wartezeit = spieler.schuss_pause
+                        zustand = "moduswahl"
                     elif aktion == "Steuerung":
                         zustand = "steuerung"
                     elif aktion == "Zurück":
                         zustand = "menue"
                     elif aktion == "Beenden":
                         laeuft = False
+
+                elif (ereignis.type == pygame.MOUSEBUTTONDOWN
+                      and ereignis.button == 1 and zustand == "moduswahl"):
+                    karte = modus_karten.auswahl(ereignis.pos)
+                    if karte:
+                        modus = karte["id"]
+                        spieler, schuesse, gegner, gegnerschuesse, kristalle, partikel, wellen, besiegte_gegner, zustand = neues_spiel(modus)
+                        spielzeit = 0.0
+                        versatz = (0, 0)
+                        upgrade_karten.leeren()
+                        delta_time = 0.0
+                        spieler.schuss_wartezeit = spieler.schuss_pause
 
                 elif (ereignis.type == pygame.MOUSEBUTTONDOWN
                       and ereignis.button == 1 and zustand == "upgrade"):
@@ -166,8 +196,12 @@ def main():
                 break
 
             mausposition = pygame.mouse.get_pos()
-            if zustand in ("menue", "steuerung"):
-                startmenue.zeichnen(fenster, mausposition, zustand)
+            if zustand in ("menue", "steuerung", "moduswahl"):
+                if zustand == "moduswahl":
+                    fenster.blit(startmenue.hintergrund, (0, 0))
+                    modus_karten.zeichnen(fenster, mausposition)
+                else:
+                    startmenue.zeichnen(fenster, mausposition, zustand)
                 if pygame.mouse.get_focused():
                     fadenkreuz.zeichnen(fenster, mausposition)
                 pygame.display.flip()
@@ -176,7 +210,10 @@ def main():
             if zustand != "upgrade":
                 # Auch beim letzten Leben läuft das kurze Wackeln noch aus.
                 spieler.wackel_rest = max(0.0, spieler.wackel_rest - delta_time)
+            if zustand == "sieg":
+                partikel.aktualisieren(delta_time)
             if zustand == "spiel":
+                spielzeit += delta_time
                 partikel.aktualisieren(delta_time)
                 spieler.aktualisieren(
                     delta_time, pygame.key.get_pressed(), mausposition
@@ -194,6 +231,9 @@ def main():
                 for feind in gegner:
                     gegnerschuesse.extend(feind.feuern(spieler.position, grenzen))
 
+                if wellen.boss is not None and wellen.boss.leben > 0:
+                    gegner.extend(wellen.boss.verstaerkung())
+
                 for schuss in schuesse:
                     schuss.aktualisieren(delta_time)
                 schuesse = [
@@ -209,9 +249,15 @@ def main():
                     kristalle[:] = [kristall for kristall in kristalle
                                    if not kristall.aktualisieren(delta_time, spieler)]
                 wellen.abschluss_pruefen(gegner)
+                if modus == "endless":
+                    highscore.aktualisieren(rekord, besiegte_gegner, wellen.geschafft)
                 if spieler.leben <= 0:
                     zustand = "game_over"
                     sound_spielen("gameover")
+                elif wellen.boss is not None and wellen.boss.leben <= 0:
+                    zustand = "sieg"
+                    gegnerschuesse.clear()
+                    schuesse.clear()
                 elif spieler.upgrades_offen > 0:
                     zustand = "upgrade"
                     upgrade_karten.oeffnen(spieler)
@@ -243,11 +289,15 @@ def main():
             fenster.fill(settings.DUNKELBLAU)
             fenster.blit(welt, versatz)
             anzeigen.spielstand(fenster, spieler.leben, wellen.nummer, besiegte_gegner)
+            if wellen.boss is not None and wellen.boss.leben > 0:
+                bossleiste(fenster, wellen.boss)
             if zustand == "game_over":
                 anzeigen.game_over(fenster, wellen.nummer, besiegte_gegner)
             elif zustand == "spiel" and wellen.anzeige_zeit > 0:
                 anzeigen.welle(fenster, wellen.nummer)
             anzeigen.erfahrung(fenster, spieler)
+            if zustand == "sieg":
+                sieganzeige(fenster, spielzeit, besiegte_gegner)
             if zustand == "upgrade":
                 upgrade_karten.zeichnen(fenster, mausposition)
             if pygame.mouse.get_focused():

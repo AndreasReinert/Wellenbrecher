@@ -51,7 +51,6 @@ class Spieler:
         while self.erfahrung >= self.erfahrung_bedarf:
             self.erfahrung -= self.erfahrung_bedarf
             self.level += 1
-            assets.sound_spielen("levelup")
             self.upgrades_offen += 1
             self.erfahrung_bedarf = math.ceil(
                 self.erfahrung_bedarf * settings.ERFAHRUNG_WACHSTUM
@@ -118,7 +117,6 @@ class Spieler:
         if richtung.length_squared() == 0:
             return []
         self.schuss_wartezeit = self.schuss_pause
-        assets.sound_spielen("schuss")
         return [Schuss(self.position, richtung.rotate(
             (index - (self.schuss_anzahl - 1) / 2) * settings.MEHRFACHSCHUSS_WINKEL
         ), self.schaden) for index in range(self.schuss_anzahl)]
@@ -130,7 +128,6 @@ class Spieler:
         self.leben = max(0, self.leben - schaden)
         self.unverwundbar_rest = SPIELER_UNVERWUNDBAR_DAUER
         self.wackel_rest = settings.BILDSCHIRM_WACKEL_DAUER
-        assets.sound_spielen("treffer")
         return True
 
     def zeichnen(self, fenster):
@@ -233,14 +230,12 @@ class Gegner:
         if richtung.length_squared() == 0:
             return []
         self.schuss_wartezeit = self.waffe["pause"]
-        assets.sound_spielen("schuss")
         return [GegnerSchuss(self.position, richtung.rotate(winkel), self.waffe)
                 for winkel in self.waffe["winkel"]]
 
     def schaden_nehmen(self, schaden):
         self.leben = max(0, self.leben - schaden)
         self.blitz_rest = settings.GEGNER_BLITZ_DAUER
-        assets.sound_spielen("treffer")
 
     def zeichnen(self, fenster):
         # Erst beim Zeichnen auswählen: ein neuer Treffer ist sofort sichtbar.
@@ -296,7 +291,6 @@ class Kristall:
             weg = min(settings.KRISTALL_TEMPO * delta_time, abstand)
             self.position += richtung / abstand * weg
         if beruehren(self, spieler):
-            assets.sound_spielen("kristall")
             spieler.erfahrung_sammeln(settings.KRISTALL_ERFAHRUNG)
             return True
         return False
@@ -360,3 +354,55 @@ class Partikelsystem:
     def zeichnen(self, fenster):
         for punkt in self.partikel:
             punkt.zeichnen(fenster)
+
+
+class Boss(Gegner):
+    """Mutterschiff: oben pendeln, Ring und Verstärkung abwechseln."""
+
+    def __init__(self, fenstergroesse):
+        super().__init__("boss", fenstergroesse)
+        self.position = pygame.Vector2(fenstergroesse[0] / 2, settings.BOSS_Y)
+        self.richtung = 1
+        self.angriff = "ring"
+        self.angriffszeit = settings.BOSS_RING_PAUSE
+        self.hilfe_offen = False
+        self.waffe = {"radius": settings.BOSS_SCHUSS_RADIUS,
+                      "bildname": "schuss_boss", "farbe": settings.BOSS_FARBE}
+        self.aktualisieren(0.0, self.position)
+
+    def aktualisieren(self, delta_time, spielerposition):
+        self.blitz_rest = max(0.0, self.blitz_rest - delta_time)
+        self.angriffszeit -= delta_time
+        self.position.x += self.richtung * self.tempo * delta_time
+        links = self.radius + settings.BOSS_RAND
+        rechts = settings.BREITE - links
+        if self.position.x >= rechts:
+            self.position.x, self.richtung = rechts, -1
+        elif self.position.x <= links:
+            self.position.x, self.richtung = links, 1
+        self.rect = self.bild.get_rect(center=self.position)
+
+    def feuern(self, spielerposition, grenzen):
+        if self.angriffszeit > 0:
+            return []
+        if self.angriff == "ring":
+            schuesse = []
+            for index in range(settings.BOSS_RING_ANZAHL):
+                richtung = pygame.Vector2(0, 1).rotate(360 * index / settings.BOSS_RING_ANZAHL)
+                schuss = GegnerSchuss(self.position, richtung, self.waffe)
+                schuss.geschwindigkeit = richtung * settings.BOSS_SCHUSS_TEMPO
+                schuesse.append(schuss)
+            self.angriff = "hilfe"
+            self.angriffszeit = settings.BOSS_HILFE_PAUSE
+            return schuesse
+        self.hilfe_offen = True
+        self.angriff = "ring"
+        self.angriffszeit = settings.BOSS_RING_PAUSE
+        return []
+
+    def verstaerkung(self):
+        if not self.hilfe_offen:
+            return []
+        self.hilfe_offen = False
+        return [Gegner("jaeger", settings.FENSTERGROESSE)
+                for _ in range(settings.BOSS_HILFE_ANZAHL)]
