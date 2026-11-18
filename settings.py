@@ -33,3 +33,15 @@ FADENKREUZ_FARBE = (155, 240, 255)
 FADENKREUZ_LEUCHTFARBE = (40, 190, 255)
 FADENKREUZ_SCHICHTEN = ((7, 22), (5, 45), (3, 85))
 FADENKREUZ_KERNBREITE = 1
+
+# Gegner: Tempo in Pixeln/Sekunde, Radius in Pixeln; Bilder zeigen nach oben.
+GEGNER_TYPEN = {
+    "jaeger": {"tempo": 120, "leben": 2, "radius": 26,
+               "bildname": "jaeger", "ersatzfarbe": (255, 100, 90)},
+    "flitzer": {"tempo": 220, "leben": 1, "radius": 20,
+                "bildname": "flitzer", "ersatzfarbe": (255, 210, 70)},
+    "panzer": {"tempo": 70, "leben": 6, "radius": 40,
+               "bildname": "panzer", "ersatzfarbe": (170, 120, 230)},
+}
+GEGNER_SPAWN_PAUSE = 2.0  # Sekunden zwischen Testgegnern
+GEGNER_TESTTYP = "jaeger"

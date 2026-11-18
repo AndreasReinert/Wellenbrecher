@@ -2,9 +2,11 @@
 import pygame
 
 from assets import hintergrund
-from entities import Spieler
+from entities import Spieler, Gegner
 from ui import Fadenkreuz
-from settings import FENSTERGROESSE, FPS, TITEL
+from settings import (
+    FENSTERGROESSE, FPS, TITEL, GEGNER_SPAWN_PAUSE, GEGNER_TESTTYP,
+)
 
 
 def main():
@@ -19,6 +21,8 @@ def main():
         hintergrundbild = hintergrund(FENSTERGROESSE)
         spieler = Spieler(FENSTERGROESSE)
         schuesse = []
+        gegner = []
+        spawn_zeit = 0.0
         grenzen = fenster.get_rect()
         laeuft = True
 
@@ -39,6 +43,15 @@ def main():
             spieler.aktualisieren(
                 delta_time, pygame.key.get_pressed(), mausposition
             )
+            for feind in gegner:
+                feind.aktualisieren(delta_time, spieler.position)
+            spawn_zeit += delta_time
+            while spawn_zeit >= GEGNER_SPAWN_PAUSE:
+                spawn_zeit -= GEGNER_SPAWN_PAUSE
+                feind = Gegner(GEGNER_TESTTYP, FENSTERGROESSE)
+                feind.aktualisieren(0.0, spieler.position)
+                gegner.append(feind)
+
             for schuss in schuesse:
                 schuss.aktualisieren(delta_time)
             schuesse = [
@@ -52,6 +65,8 @@ def main():
                     schuesse.append(schuss)
 
             fenster.blit(hintergrundbild, (0, 0))
+            for feind in gegner:
+                feind.zeichnen(fenster)
             for schuss in schuesse:
                 schuss.zeichnen(fenster)
             spieler.zeichnen(fenster)

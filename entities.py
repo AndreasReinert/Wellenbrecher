@@ -1,5 +1,6 @@
 """Spielobjekte für Wellenbrecher."""
 import math
+import random
 
 import pygame
 
@@ -7,7 +8,7 @@ import assets
 from settings import (
     SPIELER_FARBE, SPIELER_GROESSE, SPIELER_TEMPO,
     SCHUSS_PAUSE, SCHUSS_TEMPO, SCHUSS_GROESSE, SCHUSS_FARBE,
-    SCHUSS_LEBENSDAUER,
+    SCHUSS_LEBENSDAUER, GEGNER_TYPEN,
 )
 
 
@@ -91,6 +92,55 @@ class Schuss:
     def im_fenster(self, grenzen):
         """Erst entfernen, wenn das gesamte Bild außerhalb liegt."""
         return self.rect.colliderect(grenzen)
+
+    def zeichnen(self, fenster):
+        fenster.blit(self.bild, self.rect)
+
+
+class Gegner:
+    """Erscheint außerhalb eines zufälligen Randes und verfolgt den Spieler."""
+
+    def __init__(self, typ, fenstergroesse):
+        daten = GEGNER_TYPEN[typ]
+        self.typ = typ
+        self.tempo = daten["tempo"]
+        self.leben = daten["leben"]
+        self.radius = daten["radius"]
+        self.originalbild = assets.bild(
+            daten["bildname"], self.radius * 2, daten["ersatzfarbe"]
+        )
+        # Auch die gedrehten Bildecken starten vollständig außerhalb.
+        abstand = math.ceil(math.hypot(*self.originalbild.get_size()) / 2)
+        breite, hoehe = fenstergroesse
+        rand = random.choice(("links", "rechts", "oben", "unten"))
+        if rand == "links":
+            position = (-abstand, random.uniform(0, hoehe))
+        elif rand == "rechts":
+            position = (breite + abstand, random.uniform(0, hoehe))
+        elif rand == "oben":
+            position = (random.uniform(0, breite), -abstand)
+        else:
+            position = (random.uniform(0, breite), hoehe + abstand)
+        self.position = pygame.Vector2(position)
+        self.winkel = 0.0
+        self.bild = self.originalbild
+        self.rect = self.bild.get_rect(
+            center=(round(self.position.x), round(self.position.y))
+        )
+
+    def aktualisieren(self, delta_time, spielerposition):
+        zum_spieler = pygame.Vector2(spielerposition) - self.position
+        entfernung = zum_spieler.length()
+        if entfernung > 0:
+            self.winkel = math.degrees(math.atan2(-zum_spieler.x, -zum_spieler.y))
+            # Am Ziel stoppen, statt bei großen Zeitschritten darüber zu springen.
+            self.position += zum_spieler / entfernung * min(
+                self.tempo * delta_time, entfernung
+            )
+        self.bild = pygame.transform.rotate(self.originalbild, self.winkel)
+        self.rect = self.bild.get_rect(
+            center=(round(self.position.x), round(self.position.y))
+        )
 
     def zeichnen(self, fenster):
         fenster.blit(self.bild, self.rect)
