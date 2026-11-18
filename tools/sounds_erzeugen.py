@@ -1,4 +1,4 @@
-"""Mit python tools/sounds_erzeugen.py sechs Retro-WAVs erzeugen.
+"""Mit python tools/sounds_erzeugen.py alle Retro-WAVs erzeugen.
 
 Nur Standardbibliothek; unabhängig vom aktuellen Arbeitsordner.
 Die Klangparameter stehen zentral in settings.py. Vorhandene WAVs werden ersetzt.

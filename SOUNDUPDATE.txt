@@ -1,0 +1,18 @@
+WELLENBRECHER – SOUNUPDATE
+
+ZIP im bestehenden Projektordner entpacken und enthaltene Dateien ersetzen.
+Vorhandene Bilder, ui.py und highscore.py bleiben unverändert.
+
+Start: python main.py
+WAVs neu erzeugen: python tools/sounds_erzeugen.py
+Der Generator verwendet nur die Python-Standardbibliothek.
+
+23 Sounds für Menüs, Waffen, Treffer, Zerstörungen, Kristalle,
+Upgrades, Wellen, Bossangriffe, Sieg und Game Over.
+Lautstärken: SOUND_GESAMTLAUTSTAERKE und SOUND_LAUTSTAERKEN in settings.py.
+SOUND_PAUSEN begrenzt häufige Effekte; wichtige Sounds erhalten reservierte Kanäle.
+Fehlende WAVs oder fehlendes Audiogerät werden ohne Spielabbruch übersprungen.
+
+Geprüft mit virtuellem Audioausgang: WAVs, Cache, Ereignisauslösung und Spielstart.
+Zusätzlich Spielstart ohne Audiogerät geprüft. Lautstärke und Klang bitte auf
+dem eigenen Lautsprecher testen; keine reale Audioausgabe im Testsystem.

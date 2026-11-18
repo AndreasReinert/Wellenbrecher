@@ -53,6 +53,7 @@ class Spieler:
             self.erfahrung -= self.erfahrung_bedarf
             self.level += 1
             self.upgrades_offen += 1
+            assets.sound_spielen("levelup")
             self.erfahrung_bedarf = math.ceil(
                 self.erfahrung_bedarf * settings.ERFAHRUNG_WACHSTUM
             )
@@ -62,6 +63,7 @@ class Spieler:
         for _ in range(anzahl):
             self.level += 1
             self.upgrades_offen += 1
+            assets.sound_spielen("levelup")
             self.erfahrung_bedarf = math.ceil(
                 self.erfahrung_bedarf * settings.ERFAHRUNG_WACHSTUM)
 
@@ -127,6 +129,7 @@ class Spieler:
             self.leben = min(upgrade["maximum"], self.leben + wert)
         elif art == "magnet":
             self.magnetradius *= wert
+        assets.sound_spielen("reparatur" if art == "leben" else "drohne_aktiv" if art == "drohne" else "upgrade")
         return True
 
     def feuern(self, mausposition):
@@ -137,6 +140,7 @@ class Spieler:
         if richtung.length_squared() == 0:
             return []
         self.schuss_wartezeit = self.schuss_pause
+        assets.sound_spielen("schuss")
         return [Schuss(self.position, richtung.rotate(
             (index - (self.schuss_anzahl - 1) / 2) * settings.MEHRFACHSCHUSS_WINKEL
         ), self.schaden) for index in range(self.schuss_anzahl)]
@@ -148,6 +152,7 @@ class Spieler:
         self.leben = max(0, self.leben - schaden)
         self.unverwundbar_rest = SPIELER_UNVERWUNDBAR_DAUER
         self.wackel_rest = settings.BILDSCHIRM_WACKEL_DAUER
+        assets.sound_spielen("spieler_treffer")
         return True
 
     def zeichnen(self, fenster):
@@ -250,12 +255,14 @@ class Gegner:
         if richtung.length_squared() == 0:
             return []
         self.schuss_wartezeit = self.waffe["pause"]
+        assets.sound_spielen("gegner_schuss")
         return [GegnerSchuss(self.position, richtung.rotate(winkel), self.waffe)
                 for winkel in self.waffe["winkel"]]
 
     def schaden_nehmen(self, schaden):
         self.leben = max(0, self.leben - schaden)
         self.blitz_rest = settings.GEGNER_BLITZ_DAUER
+        assets.sound_spielen("treffer")
 
     def zeichnen(self, fenster):
         # Erst beim Zeichnen auswählen: ein neuer Treffer ist sofort sichtbar.
@@ -311,6 +318,7 @@ class Kristall:
             weg = min(settings.KRISTALL_TEMPO * delta_time, abstand)
             self.position += richtung / abstand * weg
         if beruehren(self, spieler):
+            assets.sound_spielen("kristall")
             spieler.erfahrung_sammeln(settings.KRISTALL_ERFAHRUNG)
             return True
         return False
@@ -406,6 +414,7 @@ class Boss(Gegner):
         if self.angriffszeit > 0:
             return []
         if self.angriff == "ring":
+            assets.sound_spielen("boss_ring")
             schuesse = []
             for index in range(settings.BOSS_RING_ANZAHL):
                 richtung = pygame.Vector2(0, 1).rotate(360 * index / settings.BOSS_RING_ANZAHL)
@@ -424,6 +433,7 @@ class Boss(Gegner):
         if not self.hilfe_offen:
             return []
         self.hilfe_offen = False
+        assets.sound_spielen("boss_hilfe")
         return [Gegner("jaeger", settings.FENSTERGROESSE)
                 for _ in range(settings.BOSS_HILFE_ANZAHL)]
 
@@ -459,6 +469,7 @@ class Drohne:
         if self.schuss_wartezeit > 0:
             return []
         self.schuss_wartezeit = self.schuss_pause
+        assets.sound_spielen("drohne_schuss")
         return [Schuss(self.position, richtung, self.schaden)]
 
     def zeichnen(self, fenster):

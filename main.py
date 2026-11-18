@@ -37,7 +37,8 @@ def kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse, kristalle, pa
                             versatz = pygame.Vector2(random.uniform(-settings.BOSS_EXPLOSIONSRADIUS, settings.BOSS_EXPLOSIONSRADIUS),
                                                      random.uniform(-settings.BOSS_EXPLOSIONSRADIUS, settings.BOSS_EXPLOSIONSRADIUS))
                             partikel.explosion(feind.position + versatz, feind.typ)
-                    sound_spielen("explosion")
+                    sound_spielen("boss_explosion" if isinstance(feind, Boss) else "explosion")
+                    sound_spielen("kill")
                 # Jeder Schuss trifft höchstens einen Gegner und verschwindet.
                 break
         else:
@@ -81,6 +82,8 @@ class Wellen:
         if ((self.modus == "classic" and self.nummer == settings.CLASSIC_BOSS_WELLE)
                 or (self.modus == "endless" and self.nummer % settings.ENDLESS_BOSS_INTERVALL == 0)):
             self.wartend = ["boss"]
+        if self.nummer > 1:
+            sound_spielen("boss_start" if self.wartend == ["boss"] else "welle")
         self.spawn_zeit = 0.0
         self.anzeige_zeit = WELLEN_TEXT_DAUER
         self.pause = None
@@ -173,6 +176,7 @@ def main():
         welt = pygame.Surface(FENSTERGROESSE)
         versatz = (0, 0)
         grenzen = fenster.get_rect()
+        hover_alt = None
         laeuft = True
 
         while laeuft:
@@ -186,6 +190,7 @@ def main():
                     bildschirm.umschalten()
                 elif ereignis.type == pygame.KEYDOWN and ereignis.key == pygame.K_ESCAPE:
                     if zustand == "game_over":
+                        sound_spielen("menue_klick")
                         zustand = "menue"
                         upgrade_karten.leeren()
                         versatz = (0, 0)
@@ -194,6 +199,7 @@ def main():
                 elif (ereignis.type == pygame.KEYDOWN
                       and ereignis.key == pygame.K_r and zustand in ("game_over", "sieg")):
                     spieler, schuesse, gegner, gegnerschuesse, kristalle, partikel, wellen, besiegte_gegner, zustand = neues_spiel(modus)
+                    sound_spielen("start")
                     spielzeit = 0.0
                     versatz = (0, 0)
                     upgrade_karten.leeren()
@@ -203,6 +209,8 @@ def main():
                 elif (ereignis.type == pygame.MOUSEBUTTONDOWN
                       and ereignis.button == 1 and zustand in ("menue", "steuerung")):
                     aktion = startmenue.auswahl(bildschirm.mausposition(ereignis.pos), zustand)
+                    if aktion:
+                        sound_spielen("menue_klick")
                     if aktion == "Spielen":
                         zustand = "moduswahl"
                     elif aktion == "Steuerung":
@@ -216,6 +224,7 @@ def main():
                       and ereignis.button == 1 and zustand == "moduswahl"):
                     karte = modus_karten.auswahl(bildschirm.mausposition(ereignis.pos))
                     if karte:
+                        sound_spielen("start")
                         modus = karte["id"]
                         spieler, schuesse, gegner, gegnerschuesse, kristalle, partikel, wellen, besiegte_gegner, zustand = neues_spiel(modus)
                         spielzeit = 0.0
@@ -243,6 +252,17 @@ def main():
                 break
 
             mausposition = bildschirm.mausposition(pygame.mouse.get_pos())
+            hover = None
+            if zustand in ("menue", "steuerung"):
+                hover = startmenue.auswahl(mausposition, zustand)
+            elif zustand in ("moduswahl", "upgrade"):
+                karten = modus_karten if zustand == "moduswahl" else upgrade_karten
+                karte_hover = karten.auswahl(mausposition)
+                hover = karte_hover["id"] if karte_hover else None
+            hover_neu = (zustand, hover) if hover else None
+            if hover_neu is not None and hover_neu != hover_alt:
+                sound_spielen("menue_hover")
+            hover_alt = hover_neu
             if zustand in ("menue", "steuerung", "moduswahl"):
                 if zustand == "moduswahl":
                     fenster.blit(startmenue.hintergrund, (0, 0))
@@ -299,7 +319,10 @@ def main():
                 if spieler.leben > 0:
                     kristalle[:] = [kristall for kristall in kristalle
                                    if not kristall.aktualisieren(delta_time, spieler)]
+                geschafft_vorher = wellen.geschafft
                 wellen.abschluss_pruefen(gegner)
+                if wellen.geschafft > geschafft_vorher:
+                    sound_spielen("welle_geschafft")
                 if modus == "endless":
                     highscore.aktualisieren(rekord, besiegte_gegner, wellen.geschafft)
                 if spieler.leben <= 0:
@@ -307,6 +330,7 @@ def main():
                     sound_spielen("gameover")
                 elif modus == "classic" and wellen.boss is not None and wellen.boss.leben <= 0:
                     zustand = "sieg"
+                    sound_spielen("sieg")
                     if modus == "classic":
                         highscore.classic_aktualisieren(rekord, spielzeit)
                     gegnerschuesse.clear()

@@ -71,7 +71,7 @@ def sound(name):
         return None
     try:
         klang = pygame.mixer.Sound(str(settings.SOUNDORDNER / f"{name}.wav"))
-        klang.set_volume(settings.SOUND_LAUTSTAERKEN.get(name, 0.0))
+        klang.set_volume(settings.SOUND_LAUTSTAERKEN.get(name, 0.0) * settings.SOUND_GESAMTLAUTSTAERKE)
         return klang
     except (pygame.error, OSError):
         return None
@@ -80,18 +80,38 @@ def sound(name):
 def sounds_laden():
     """Nach pygame.init() vorladen; keine Soundhardware erforderlich."""
     import settings
+    _letzte_toene.clear()
+    if pygame.mixer.get_init():
+        pygame.mixer.set_num_channels(settings.SOUND_KANAELE)
+        pygame.mixer.set_reserved(settings.SOUND_WICHTIGE_KANAELE)
     sound.cache_clear()
     for name in settings.SOUND_LAUTSTAERKEN:
         sound(name)
 
 
+_letzte_toene = {}
+
+
 def sound_spielen(name):
-    """Auch bei verlorenem Audiogerät ohne Unterbrechung weiterspielen."""
+    """Effekte drosseln; Hinweise nicht durch viele Schüsse verdrängen lassen."""
+    import settings
     try:
-        if pygame.mixer.get_init():
-            klang = sound(name)
-            if klang is not None:
-                klang.play()
+        if not pygame.mixer.get_init():
+            return
+        jetzt = pygame.time.get_ticks() / 1000.0
+        pause = settings.SOUND_PAUSEN.get(name, settings.SOUND_MINDESTABSTAND)
+        if jetzt - _letzte_toene.get(name, -float("inf")) < pause:
+            return
+        klang = sound(name)
+        if klang is None:
+            return
+        if name in settings.SOUND_PRIORITAET:
+            kanaele = [pygame.mixer.Channel(i) for i in range(settings.SOUND_WICHTIGE_KANAELE)]
+            kanal = next((k for k in kanaele if not k.get_busy()), kanaele[0])
+            kanal.play(klang)
+        else:
+            klang.play()
+        _letzte_toene[name] = jetzt
     except (pygame.error, OSError):
         pass
 

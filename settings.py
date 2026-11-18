@@ -267,3 +267,40 @@ ENDLESS_BOSS_LEVELBONUS = 3
 UPGRADES.append({"id": "drohne_feuerrate", "name": "Drohnen-Feuerrate",
                  "wirkung": "Drohnen-Feuerpause -40 %",
                  "icon": "icon_drohne_feuerrate", "wert": 0.60})
+
+
+# Audiofeedback: Häufige Effekte begrenzen, wichtige Hinweise reservieren.
+SOUND_KANAELE = 32
+SOUND_WICHTIGE_KANAELE = 4
+SOUND_GESAMTLAUTSTAERKE = 0.8
+SOUND_MINDESTABSTAND = 0.045
+SOUND_PAUSEN = {"schuss": 0.065, "drohne_schuss": 0.09,
+                "gegner_schuss": 0.12, "treffer": 0.07, "menue_hover": 0.09}
+SOUND_PRIORITAET = {"gameover", "sieg", "levelup", "spieler_treffer", "boss_explosion"}
+SOUND_LAUTSTAERKEN.update({
+    "menue_hover": 0.12, "menue_klick": 0.30, "start": 0.38,
+    "upgrade": 0.38, "reparatur": 0.35, "drohne_aktiv": 0.35,
+    "drohne_schuss": 0.09, "gegner_schuss": 0.10, "boss_ring": 0.25,
+    "boss_hilfe": 0.30, "boss_start": 0.40, "boss_explosion": 0.50,
+    "spieler_treffer": 0.40, "kill": 0.19, "welle": 0.30,
+    "welle_geschafft": 0.28, "sieg": 0.50,
+})
+SOUND_REZEPTE.update({
+    "menue_hover": (0.045, 680, 900, 0.0, ()),
+    "menue_klick": (0.10, 0, 0, 0.0, (660, 990)),
+    "start": (0.38, 0, 0, 0.0, (330, 440, 660, 880)),
+    "upgrade": (0.30, 0, 0, 0.0, (660, 880, 1320)),
+    "reparatur": (0.36, 0, 0, 0.0, (440, 554, 660, 880)),
+    "drohne_aktiv": (0.32, 220, 1200, 0.04, ()),
+    "drohne_schuss": (0.07, 1500, 500, 0.02, ()),
+    "gegner_schuss": (0.12, 350, 90, 0.10, ()),
+    "boss_ring": (0.30, 180, 45, 0.25, ()),
+    "boss_hilfe": (0.55, 0, 0, 0.08, (160, 240, 160, 240)),
+    "boss_start": (0.70, 0, 0, 0.15, (220, 164, 110)),
+    "boss_explosion": (0.85, 95, 20, 0.90, ()),
+    "spieler_treffer": (0.22, 460, 70, 0.40, ()),
+    "kill": (0.12, 0, 0, 0.0, (780, 1100)),
+    "welle": (0.30, 0, 0, 0.0, (330, 440, 660)),
+    "welle_geschafft": (0.35, 0, 0, 0.0, (523, 659, 784)),
+    "sieg": (1.1, 0, 0, 0.0, (523, 659, 784, 1047, 784, 1047)),
+})
