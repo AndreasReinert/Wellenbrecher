@@ -46,7 +46,8 @@ GEGNER_TYPEN = {
 # Wellen: Anzahl, Freischaltungen und Zeiten in Sekunden.
 WELLEN_STARTANZAHL = 6
 WELLEN_ZUWACHS = 3
-WELLEN_SPAWN_PAUSE = 2.0
+WELLEN_SPAWN_PAUSE = 2.0  # Pause zwischen Gruppen
+WELLEN_GRUPPENGROESSE = 3
 WELLEN_PAUSE = 2.0
 WELLEN_TEXT_DAUER = 2.0
 GEGNER_AB_WELLE = {"jaeger": 1, "flitzer": 2, "panzer": 3}
@@ -85,7 +86,7 @@ GEGNER_SCHUSS_LEBENSDAUER = 5.0
 GEGNER_SCHUSS_SCHADEN = 1
 GEGNER_WAFFEN = {
     "jaeger": {"pause": 1.5, "radius": 6, "winkel": (0,),
-               "farbe": (255, 110, 80)},
+               "bildname": "schuss_jaeger", "farbe": (255, 110, 80)},
     "panzer": {"pause": 2.0, "radius": 12, "winkel": (-20, 0, 20),
-               "farbe": (220, 130, 255)},
+               "bildname": "schuss_panzer", "farbe": (220, 130, 255)},
 }

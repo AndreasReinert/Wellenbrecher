@@ -9,6 +9,7 @@ from ui import Fadenkreuz, Anzeigen
 from settings import (
     FENSTERGROESSE, FPS, TITEL,
     WELLEN_STARTANZAHL, WELLEN_ZUWACHS, WELLEN_SPAWN_PAUSE,
+    WELLEN_GRUPPENGROESSE,
     WELLEN_PAUSE, WELLEN_TEXT_DAUER, GEGNER_AB_WELLE,
     SCHUSS_SCHADEN, GEGNER_KONTAKTSCHADEN, GEGNER_SCHUSS_SCHADEN,
 )
@@ -73,9 +74,11 @@ class Wellen:
         if self.wartend:
             self.spawn_zeit -= delta_time
             if self.spawn_zeit <= 0:
-                feind = Gegner(self.wartend.pop(), FENSTERGROESSE)
-                feind.aktualisieren(0.0, spielerposition)
-                gegner.append(feind)
+                # Eine Gruppe gleichzeitig; eine Restgruppe bleibt kleiner.
+                for _ in range(min(WELLEN_GRUPPENGROESSE, len(self.wartend))):
+                    feind = Gegner(self.wartend.pop(), FENSTERGROESSE)
+                    feind.aktualisieren(0.0, spielerposition)
+                    gegner.append(feind)
                 self.spawn_zeit = WELLEN_SPAWN_PAUSE
 
     def abschluss_pruefen(self, gegner):

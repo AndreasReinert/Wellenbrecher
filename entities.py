@@ -192,7 +192,7 @@ class GegnerSchuss(Schuss):
         self.radius = waffe["radius"]
         self.geschwindigkeit = (pygame.Vector2(richtung).normalize()
                                 * settings.GEGNER_SCHUSS_TEMPO)
-        self.bild = assets.bild("gegner_schuss", self.radius * 2, waffe["farbe"])
+        self.bild = assets.bild(waffe["bildname"], self.radius * 2, waffe["farbe"])
         self.rect = self.bild.get_rect(center=(round(self.position.x), round(self.position.y)))
 
     def abgelaufen(self):
