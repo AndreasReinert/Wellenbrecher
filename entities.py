@@ -51,6 +51,7 @@ class Spieler:
         while self.erfahrung >= self.erfahrung_bedarf:
             self.erfahrung -= self.erfahrung_bedarf
             self.level += 1
+            assets.sound_spielen("levelup")
             self.upgrades_offen += 1
             self.erfahrung_bedarf = math.ceil(
                 self.erfahrung_bedarf * settings.ERFAHRUNG_WACHSTUM
@@ -117,6 +118,7 @@ class Spieler:
         if richtung.length_squared() == 0:
             return []
         self.schuss_wartezeit = self.schuss_pause
+        assets.sound_spielen("schuss")
         return [Schuss(self.position, richtung.rotate(
             (index - (self.schuss_anzahl - 1) / 2) * settings.MEHRFACHSCHUSS_WINKEL
         ), self.schaden) for index in range(self.schuss_anzahl)]
@@ -128,6 +130,7 @@ class Spieler:
         self.leben = max(0, self.leben - schaden)
         self.unverwundbar_rest = SPIELER_UNVERWUNDBAR_DAUER
         self.wackel_rest = settings.BILDSCHIRM_WACKEL_DAUER
+        assets.sound_spielen("treffer")
         return True
 
     def zeichnen(self, fenster):
@@ -230,12 +233,14 @@ class Gegner:
         if richtung.length_squared() == 0:
             return []
         self.schuss_wartezeit = self.waffe["pause"]
+        assets.sound_spielen("schuss")
         return [GegnerSchuss(self.position, richtung.rotate(winkel), self.waffe)
                 for winkel in self.waffe["winkel"]]
 
     def schaden_nehmen(self, schaden):
         self.leben = max(0, self.leben - schaden)
         self.blitz_rest = settings.GEGNER_BLITZ_DAUER
+        assets.sound_spielen("treffer")
 
     def zeichnen(self, fenster):
         # Erst beim Zeichnen auswählen: ein neuer Treffer ist sofort sichtbar.
@@ -291,6 +296,7 @@ class Kristall:
             weg = min(settings.KRISTALL_TEMPO * delta_time, abstand)
             self.position += richtung / abstand * weg
         if beruehren(self, spieler):
+            assets.sound_spielen("kristall")
             spieler.erfahrung_sammeln(settings.KRISTALL_ERFAHRUNG)
             return True
         return False

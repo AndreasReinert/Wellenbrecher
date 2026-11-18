@@ -61,3 +61,47 @@ def _hintergrund(groesse):
     flaeche = pygame.Surface(groesse)
     flaeche.fill(DUNKELBLAU)
     return flaeche
+
+
+@lru_cache(maxsize=None)
+def sound(name):
+    """Einmal laden; fehlende Datei oder fehlendes Audiogerät bedeutet Stille."""
+    import settings
+    if not pygame.mixer.get_init():
+        return None
+    try:
+        klang = pygame.mixer.Sound(str(settings.SOUNDORDNER / f"{name}.wav"))
+        klang.set_volume(settings.SOUND_LAUTSTAERKEN.get(name, 0.0))
+        return klang
+    except (pygame.error, OSError):
+        return None
+
+
+def sounds_laden():
+    """Nach pygame.init() vorladen; keine Soundhardware erforderlich."""
+    import settings
+    sound.cache_clear()
+    for name in settings.SOUND_LAUTSTAERKEN:
+        sound(name)
+
+
+def sound_spielen(name):
+    """Auch bei verlorenem Audiogerät ohne Unterbrechung weiterspielen."""
+    try:
+        if pygame.mixer.get_init():
+            klang = sound(name)
+            if klang is not None:
+                klang.play()
+    except (pygame.error, OSError):
+        pass
+
+
+@lru_cache(maxsize=None)
+def titelbild(groesse):
+    """Titelhintergrund einmal laden; ohne Datei dunkelblau bleiben."""
+    quelle = _laden(BILDERORDNER / "titelbild.png")
+    if quelle is not None:
+        return pygame.transform.smoothscale(quelle, groesse)
+    flaeche = pygame.Surface(groesse)
+    flaeche.fill(DUNKELBLAU)
+    return flaeche

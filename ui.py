@@ -174,3 +174,55 @@ class UpgradeKarten:
                 fenster.blit(text, text.get_rect(center=(rect.centerx, rect.top + y)))
         hinweis = self.text.render("Wähle ein Upgrade mit Linksklick – die Spielwelt pausiert.", True, settings.UI_TEXTFARBE)
         fenster.blit(hinweis, hinweis.get_rect(center=(settings.BREITE // 2, settings.UPGRADE_HINWEIS_Y)))
+
+
+class Startmenue:
+    """Startseite und kurze Steuerungshilfe ohne laufende Spielwelt."""
+
+    def __init__(self):
+        self.hintergrund = assets.titelbild(settings.FENSTERGROESSE)
+        self.titel = pygame.font.Font(None, settings.MENUE_TITEL_GROESSE)
+        self.schrift = pygame.font.Font(None, settings.MENUE_TEXT_GROESSE)
+        self.knoepfe = []
+        for index, text in enumerate(("Spielen", "Steuerung", "Beenden")):
+            rect = pygame.Rect((0, 0), settings.MENUE_KNOPF_GROESSE)
+            rect.center = (settings.BREITE // 2,
+                           settings.MENUE_KNOPF_START_Y + index * settings.MENUE_KNOPF_ABSTAND)
+            self.knoepfe.append((text, rect))
+        self.zurueck = pygame.Rect((0, 0), settings.MENUE_KNOPF_GROESSE)
+        self.zurueck.center = (settings.BREITE // 2, settings.MENUE_ZURUECK_Y)
+        self.schleier = pygame.Surface(settings.FENSTERGROESSE, pygame.SRCALPHA)
+        self.schleier.fill((*settings.DUNKELBLAU, settings.MENUE_ABDUNKLUNG))
+
+    def auswahl(self, position, zustand):
+        knoepfe = [("Zurück", self.zurueck)] if zustand == "steuerung" else self.knoepfe
+        for text, rect in knoepfe:
+            if rect.collidepoint(position):
+                return text
+        return None
+
+    def _text(self, fenster, text, y, schrift):
+        bild = schrift.render(text, True, settings.MENUE_TEXT_FARBE)
+        fenster.blit(bild, bild.get_rect(center=(settings.BREITE // 2, y)))
+
+    def zeichnen(self, fenster, position, zustand):
+        fenster.blit(self.hintergrund, (0, 0))
+        if zustand == "steuerung":
+            fenster.blit(self.schleier, (0, 0))
+        self._text(fenster, "WELLENBRECHER", settings.MENUE_TITEL_Y, self.titel)
+        if zustand == "steuerung":
+            zeilen = ("WASD – Schiff bewegen", "Maus – Zielen  |  Linke Maustaste halten – Schießen",
+                      "Kristalle sammeln – Level aufsteigen und Upgrade wählen",
+                      "R – Neustart nach Game Over  |  Esc – Spiel beenden")
+            for index, text in enumerate(zeilen):
+                self._text(fenster, text, settings.MENUE_HILFE_Y + index * settings.MENUE_HILFE_ABSTAND, self.schrift)
+            knoepfe = [("Zurück", self.zurueck)]
+        else:
+            knoepfe = self.knoepfe
+        for text, rect in knoepfe:
+            aktiv = rect.collidepoint(position)
+            farbe = settings.MENUE_HOVER_FARBE if aktiv else settings.MENUE_FARBE
+            pygame.draw.rect(fenster, farbe, rect, border_radius=settings.MENUE_RADIUS)
+            pygame.draw.rect(fenster, settings.MENUE_AKZENT if aktiv else settings.MENUE_TEXT_FARBE,
+                             rect, settings.MENUE_RAND, border_radius=settings.MENUE_RADIUS)
+            self._text(fenster, text, rect.centery, self.schrift)

@@ -152,3 +152,40 @@ PARTIKEL_LEUCHTSCHICHTEN = ((3, 24), (2, 65), (1, 255))
 GEGNER_BLITZ_DAUER = 0.08
 BILDSCHIRM_WACKEL_DAUER = 0.25
 BILDSCHIRM_WACKEL_STAERKE = 5.0  # Maximale Verschiebung je Achse in Pixeln
+
+# Retro-Sounds: Lautstärken zwischen 0 (stumm) und 1.
+SOUNDORDNER = BASISORDNER / "assets" / "sounds"
+SOUND_LAUTSTAERKEN = {
+    "schuss": 0.12, "treffer": 0.35, "explosion": 0.45,
+    "kristall": 0.30, "levelup": 0.50, "gameover": 0.50,
+}
+SOUND_ABTASTRATE = 22050
+SOUND_AMPLITUDE = 0.65
+SOUND_EINBLENDZEIT = 0.004
+# Dauer, Start-/Endfrequenz, Rauschanteil, Tonfolge (Hz).
+SOUND_REZEPTE = {
+    "schuss": (0.10, 1100, 180, 0.05, ()),
+    "treffer": (0.12, 220, 65, 0.55, ()),
+    "explosion": (0.38, 110, 25, 0.85, ()),
+    "kristall": (0.18, 1000, 1700, 0.0, ()),
+    "levelup": (0.48, 0, 0, 0.0, (523.25, 659.25, 783.99, 1046.50)),
+    "gameover": (0.72, 0, 0, 0.12, (392, 329.63, 261.63, 130.81)),
+}
+
+# Startmenü
+MENUE_TITEL_GROESSE = 88
+MENUE_TEXT_GROESSE = 30
+MENUE_TITEL_Y = 155
+MENUE_KNOPF_GROESSE = (340, 62)
+MENUE_KNOPF_START_Y = 320
+MENUE_KNOPF_ABSTAND = 82
+MENUE_RADIUS = 12
+MENUE_RAND = 2
+MENUE_FARBE = (12, 26, 48)
+MENUE_HOVER_FARBE = (23, 65, 88)
+MENUE_AKZENT = (95, 230, 255)
+MENUE_TEXT_FARBE = (235, 248, 255)
+MENUE_HILFE_Y = 290
+MENUE_HILFE_ABSTAND = 48
+MENUE_ZURUECK_Y = 600
+MENUE_ABDUNKLUNG = 175

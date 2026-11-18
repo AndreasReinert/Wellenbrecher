@@ -4,9 +4,9 @@ import random
 import pygame
 import settings
 
-from assets import hintergrund
+from assets import hintergrund, sounds_laden, sound_spielen
 from entities import Spieler, Gegner, Kristall, Partikelsystem, beruehren
-from ui import Fadenkreuz, Anzeigen, UpgradeKarten
+from ui import Fadenkreuz, Anzeigen, UpgradeKarten, Startmenue
 from settings import (
     FENSTERGROESSE, FPS, TITEL,
     WELLEN_STARTANZAHL, WELLEN_ZUWACHS, WELLEN_SPAWN_PAUSE,
@@ -28,6 +28,7 @@ def kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse, kristalle, pa
                     besiegt += 1
                     kristalle.append(Kristall(feind.position))
                     partikel.explosion(feind.position, feind.typ)
+                    sound_spielen("explosion")
                 # Jeder Schuss trifft höchstens einen Gegner und verschwindet.
                 break
         else:
@@ -96,6 +97,7 @@ def neues_spiel():
 
 def main():
     pygame.init()
+    sounds_laden()
     maus_war_sichtbar = pygame.mouse.get_visible()
     try:
         fenster = pygame.display.set_mode(FENSTERGROESSE)
@@ -107,6 +109,8 @@ def main():
         uhr = pygame.time.Clock()
         hintergrundbild = hintergrund(FENSTERGROESSE)
         spieler, schuesse, gegner, gegnerschuesse, kristalle, partikel, wellen, besiegte_gegner, zustand = neues_spiel()
+        zustand = "menue"
+        startmenue = Startmenue()
         welt = pygame.Surface(FENSTERGROESSE)
         versatz = (0, 0)
         grenzen = fenster.get_rect()
@@ -130,6 +134,20 @@ def main():
                     delta_time = 0.0
 
                 elif (ereignis.type == pygame.MOUSEBUTTONDOWN
+                      and ereignis.button == 1 and zustand in ("menue", "steuerung")):
+                    aktion = startmenue.auswahl(ereignis.pos, zustand)
+                    if aktion == "Spielen":
+                        spieler, schuesse, gegner, gegnerschuesse, kristalle, partikel, wellen, besiegte_gegner, zustand = neues_spiel()
+                        delta_time = 0.0
+                        spieler.schuss_wartezeit = spieler.schuss_pause
+                    elif aktion == "Steuerung":
+                        zustand = "steuerung"
+                    elif aktion == "Zurück":
+                        zustand = "menue"
+                    elif aktion == "Beenden":
+                        laeuft = False
+
+                elif (ereignis.type == pygame.MOUSEBUTTONDOWN
                       and ereignis.button == 1 and zustand == "upgrade"):
                     upgrade = upgrade_karten.auswahl(ereignis.pos)
                     if upgrade is not None and spieler.upgrade_anwenden(upgrade):
@@ -148,6 +166,13 @@ def main():
                 break
 
             mausposition = pygame.mouse.get_pos()
+            if zustand in ("menue", "steuerung"):
+                startmenue.zeichnen(fenster, mausposition, zustand)
+                if pygame.mouse.get_focused():
+                    fadenkreuz.zeichnen(fenster, mausposition)
+                pygame.display.flip()
+                continue
+
             if zustand != "upgrade":
                 # Auch beim letzten Leben läuft das kurze Wackeln noch aus.
                 spieler.wackel_rest = max(0.0, spieler.wackel_rest - delta_time)
@@ -186,6 +211,7 @@ def main():
                 wellen.abschluss_pruefen(gegner)
                 if spieler.leben <= 0:
                     zustand = "game_over"
+                    sound_spielen("gameover")
                 elif spieler.upgrades_offen > 0:
                     zustand = "upgrade"
                     upgrade_karten.oeffnen(spieler)
