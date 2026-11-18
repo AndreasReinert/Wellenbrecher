@@ -2,9 +2,10 @@
 import random
 
 import pygame
+import settings
 
 from assets import hintergrund
-from entities import Spieler, Gegner, Kristall, beruehren
+from entities import Spieler, Gegner, Kristall, Partikelsystem, beruehren
 from ui import Fadenkreuz, Anzeigen, UpgradeKarten
 from settings import (
     FENSTERGROESSE, FPS, TITEL,
@@ -15,17 +16,18 @@ from settings import (
 )
 
 
-def kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse, kristalle):
+def kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse, kristalle, partikel):
     """Listen vor Ort bereinigen und die Anzahl neu besiegter Gegner liefern."""
     verbleibende_schuesse = []
     besiegt = 0
     for schuss in schuesse:
         for feind in gegner:
             if feind.leben > 0 and beruehren(schuss, feind):
-                feind.leben = max(0, feind.leben - schuss.schaden)
+                feind.schaden_nehmen(schuss.schaden)
                 if feind.leben == 0:
                     besiegt += 1
                     kristalle.append(Kristall(feind.position))
+                    partikel.explosion(feind.position, feind.typ)
                 # Jeder Schuss trifft höchstens einen Gegner und verschwindet.
                 break
         else:
@@ -89,7 +91,7 @@ class Wellen:
 
 def neues_spiel():
     """Alle veränderlichen Rundendaten frisch anlegen, Bildcache behalten."""
-    return Spieler(FENSTERGROESSE), [], [], [], [], Wellen(), 0, "spiel"
+    return Spieler(FENSTERGROESSE), [], [], [], [], Partikelsystem(), Wellen(), 0, "spiel"
 
 
 def main():
@@ -104,7 +106,9 @@ def main():
         upgrade_karten = UpgradeKarten()
         uhr = pygame.time.Clock()
         hintergrundbild = hintergrund(FENSTERGROESSE)
-        spieler, schuesse, gegner, gegnerschuesse, kristalle, wellen, besiegte_gegner, zustand = neues_spiel()
+        spieler, schuesse, gegner, gegnerschuesse, kristalle, partikel, wellen, besiegte_gegner, zustand = neues_spiel()
+        welt = pygame.Surface(FENSTERGROESSE)
+        versatz = (0, 0)
         grenzen = fenster.get_rect()
         laeuft = True
 
@@ -119,7 +123,8 @@ def main():
                     laeuft = False
                 elif (ereignis.type == pygame.KEYDOWN
                       and ereignis.key == pygame.K_r and zustand == "game_over"):
-                    spieler, schuesse, gegner, gegnerschuesse, kristalle, wellen, besiegte_gegner, zustand = neues_spiel()
+                    spieler, schuesse, gegner, gegnerschuesse, kristalle, partikel, wellen, besiegte_gegner, zustand = neues_spiel()
+                    versatz = (0, 0)
                     upgrade_karten.leeren()
                     # Keine Zeit der alten Runde auf die neue Runde übertragen.
                     delta_time = 0.0
@@ -143,7 +148,11 @@ def main():
                 break
 
             mausposition = pygame.mouse.get_pos()
+            if zustand != "upgrade":
+                # Auch beim letzten Leben läuft das kurze Wackeln noch aus.
+                spieler.wackel_rest = max(0.0, spieler.wackel_rest - delta_time)
             if zustand == "spiel":
+                partikel.aktualisieren(delta_time)
                 spieler.aktualisieren(
                     delta_time, pygame.key.get_pressed(), mausposition
                 )
@@ -170,7 +179,7 @@ def main():
                 if pygame.mouse.get_pressed()[0]:
                     schuesse.extend(spieler.feuern(mausposition))
 
-                besiegte_gegner += kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse, kristalle)
+                besiegte_gegner += kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse, kristalle, partikel)
                 if spieler.leben > 0:
                     kristalle[:] = [kristall for kristall in kristalle
                                    if not kristall.aktualisieren(delta_time, spieler)]
@@ -185,16 +194,28 @@ def main():
                 f"{TITEL} | Welle: {wellen.nummer} | Besiegt: {besiegte_gegner}"
             )
 
-            fenster.blit(hintergrundbild, (0, 0))
+            if zustand != "upgrade":
+                if spieler.wackel_rest > 0:
+                    staerke = (settings.BILDSCHIRM_WACKEL_STAERKE
+                               * spieler.wackel_rest / settings.BILDSCHIRM_WACKEL_DAUER)
+                    versatz = (round(random.uniform(-staerke, staerke)),
+                               round(random.uniform(-staerke, staerke)))
+                else:
+                    versatz = (0, 0)
+            # Nur die Welt wackelt; Anzeigen und Mausziel bleiben ruhig.
+            welt.blit(hintergrundbild, (0, 0))
             for kristall in kristalle:
-                kristall.zeichnen(fenster)
+                kristall.zeichnen(welt)
             for feind in gegner:
-                feind.zeichnen(fenster)
+                feind.zeichnen(welt)
             for schuss in schuesse:
-                schuss.zeichnen(fenster)
+                schuss.zeichnen(welt)
             for schuss in gegnerschuesse:
-                schuss.zeichnen(fenster)
-            spieler.zeichnen(fenster)
+                schuss.zeichnen(welt)
+            partikel.zeichnen(welt)
+            spieler.zeichnen(welt)
+            fenster.fill(settings.DUNKELBLAU)
+            fenster.blit(welt, versatz)
             anzeigen.spielstand(fenster, spieler.leben, wellen.nummer, besiegte_gegner)
             if zustand == "game_over":
                 anzeigen.game_over(fenster, wellen.nummer, besiegte_gegner)

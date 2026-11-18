@@ -85,7 +85,7 @@ GEGNER_SCHUSS_TEMPO = 320.0
 GEGNER_SCHUSS_LEBENSDAUER = 5.0
 GEGNER_SCHUSS_SCHADEN = 1
 GEGNER_WAFFEN = {
-    "jaeger": {"pause": 1.5, "radius": 6, "winkel": (0,),
+    "jaeger": {"pause": 1.5, "radius": 10, "winkel": (0,),
                "bildname": "schuss_jaeger", "farbe": (255, 110, 80)},
     "panzer": {"pause": 2.0, "radius": 12, "winkel": (-20, 0, 20),
                "bildname": "schuss_panzer", "farbe": (220, 130, 255)},
@@ -135,3 +135,20 @@ UPGRADE_AKTIVFARBE = (34, 72, 99)
 UPGRADE_LEUCHTFARBE = (100, 235, 255)
 UPGRADE_ICONFARBE = (90, 215, 235)
 UPGRADE_LEUCHTSCHICHTEN = ((12, 18), (8, 28), (4, 48))
+
+# Explosionen besiegter Gegner
+PARTIKEL_ANZAHL_MIN = 12
+PARTIKEL_ANZAHL_MAX = 20
+PARTIKEL_MAXIMUM = 300
+PARTIKEL_LEBENSDAUER = 0.5
+PARTIKEL_TEMPO_MIN = 80.0
+PARTIKEL_TEMPO_MAX = 260.0
+PARTIKEL_BREMSUNG = 5.0
+PARTIKEL_RADIUS_MIN = 2
+PARTIKEL_RADIUS_MAX = 4
+PARTIKEL_LEUCHTSCHICHTEN = ((3, 24), (2, 65), (1, 255))
+
+# Trefferfeedback
+GEGNER_BLITZ_DAUER = 0.08
+BILDSCHIRM_WACKEL_DAUER = 0.25
+BILDSCHIRM_WACKEL_STAERKE = 5.0  # Maximale Verschiebung je Achse in Pixeln

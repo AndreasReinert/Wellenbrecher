@@ -33,6 +33,7 @@ class Spieler:
         self.erfahrung = 0
         self.erfahrung_bedarf = settings.ERFAHRUNG_STARTBEDARF
         self.unverwundbar_rest = 0.0
+        self.wackel_rest = 0.0
         self.tempo = SPIELER_TEMPO
         self.schuss_wartezeit = 0.0
         self.originalbild = assets.bild(
@@ -126,6 +127,7 @@ class Spieler:
             return False
         self.leben = max(0, self.leben - schaden)
         self.unverwundbar_rest = SPIELER_UNVERWUNDBAR_DAUER
+        self.wackel_rest = settings.BILDSCHIRM_WACKEL_DAUER
         return True
 
     def zeichnen(self, fenster):
@@ -179,6 +181,10 @@ class Gegner:
         self.originalbild = assets.bild(
             daten["bildname"], self.radius * 2, daten["ersatzfarbe"]
         )
+        self.blitz_rest = 0.0
+        # Eigene Kopie: transparente Pixel und das gecachte Original bleiben erhalten.
+        self.weissbild = self.originalbild.copy()
+        self.weissbild.fill((255, 255, 255, 0), special_flags=pygame.BLEND_RGBA_ADD)
         # Auch die gedrehten Bildecken starten vollständig außerhalb.
         abstand = math.ceil(math.hypot(*self.originalbild.get_size()) / 2)
         breite, hoehe = fenstergroesse
@@ -199,6 +205,7 @@ class Gegner:
         )
 
     def aktualisieren(self, delta_time, spielerposition):
+        self.blitz_rest = max(0.0, self.blitz_rest - delta_time)
         self.schuss_wartezeit = max(0.0, self.schuss_wartezeit - delta_time)
         zum_spieler = pygame.Vector2(spielerposition) - self.position
         entfernung = zum_spieler.length()
@@ -226,8 +233,15 @@ class Gegner:
         return [GegnerSchuss(self.position, richtung.rotate(winkel), self.waffe)
                 for winkel in self.waffe["winkel"]]
 
+    def schaden_nehmen(self, schaden):
+        self.leben = max(0, self.leben - schaden)
+        self.blitz_rest = settings.GEGNER_BLITZ_DAUER
+
     def zeichnen(self, fenster):
-        fenster.blit(self.bild, self.rect)
+        # Erst beim Zeichnen auswählen: ein neuer Treffer ist sofort sichtbar.
+        bild = (pygame.transform.rotate(self.weissbild, self.winkel)
+                if self.blitz_rest > 0 else self.bild)
+        fenster.blit(bild, self.rect)
 
 
 class GegnerSchuss(Schuss):
@@ -285,3 +299,58 @@ class Kristall:
         fenster.blit(self.bild, self.bild.get_rect(
             center=(round(self.position.x), round(self.position.y))
         ))
+
+
+class Partikel:
+    """Ein leuchtender Punkt mit zeitunabhängiger exponentieller Bremsung."""
+
+    def __init__(self, position, farbe):
+        self.position = pygame.Vector2(position)
+        self.alter = 0.0
+        self.geschwindigkeit = pygame.Vector2(1, 0).rotate(
+            random.uniform(0, 360)
+        ) * random.uniform(settings.PARTIKEL_TEMPO_MIN, settings.PARTIKEL_TEMPO_MAX)
+        radius = random.randint(settings.PARTIKEL_RADIUS_MIN, settings.PARTIKEL_RADIUS_MAX)
+        aussenradius = math.ceil(radius * max(
+            faktor for faktor, _ in settings.PARTIKEL_LEUCHTSCHICHTEN))
+        self.bild = pygame.Surface((aussenradius * 2 + 1,) * 2, pygame.SRCALPHA)
+        for faktor, alpha in settings.PARTIKEL_LEUCHTSCHICHTEN:
+            pygame.draw.circle(self.bild, (*farbe, alpha),
+                               (aussenradius, aussenradius), round(radius * faktor))
+
+    def aktualisieren(self, delta_time):
+        zeit = min(delta_time, max(0.0, settings.PARTIKEL_LEBENSDAUER - self.alter))
+        bremsung = settings.PARTIKEL_BREMSUNG
+        faktor = math.exp(-bremsung * zeit)
+        wegzeit = (1 - faktor) / bremsung if bremsung > 0 else zeit
+        self.position += self.geschwindigkeit * wegzeit
+        self.geschwindigkeit *= faktor
+        self.alter += delta_time
+        return self.alter < settings.PARTIKEL_LEBENSDAUER
+
+    def zeichnen(self, fenster):
+        rest = max(0.0, 1 - self.alter / settings.PARTIKEL_LEBENSDAUER)
+        self.bild.set_alpha(round(255 * rest))
+        fenster.blit(self.bild, self.bild.get_rect(
+            center=(round(self.position.x), round(self.position.y))))
+
+
+class Partikelsystem:
+    """Begrenzt Explosionen; bei Platzmangel weichen die ältesten Punkte."""
+
+    def __init__(self):
+        self.partikel = []
+
+    def explosion(self, position, gegner_typ):
+        farbe = GEGNER_TYPEN[gegner_typ]["ersatzfarbe"]
+        anzahl = random.randint(settings.PARTIKEL_ANZAHL_MIN, settings.PARTIKEL_ANZAHL_MAX)
+        self.partikel.extend(Partikel(position, farbe) for _ in range(anzahl))
+        del self.partikel[:max(0, len(self.partikel) - settings.PARTIKEL_MAXIMUM)]
+
+    def aktualisieren(self, delta_time):
+        self.partikel[:] = [punkt for punkt in self.partikel
+                           if punkt.aktualisieren(delta_time)]
+
+    def zeichnen(self, fenster):
+        for punkt in self.partikel:
+            punkt.zeichnen(fenster)
