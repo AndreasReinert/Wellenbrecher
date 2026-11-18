@@ -50,7 +50,7 @@ class Anzeigen:
     def lebensleiste(self, fenster, leben):
         rand = settings.UI_RAND
         text = self.schrift.render(
-            f"Leben: {leben}/{settings.SPIELER_STARTLEBEN}", True, settings.UI_TEXTFARBE
+            "Leben", True, settings.UI_TEXTFARBE
         )
         fenster.blit(text, (rand, rand))
         rahmen = pygame.Rect((rand, rand + text.get_height() +

@@ -78,3 +78,14 @@ GAME_OVER_ABDUNKLUNG = 190
 # Abstand der Statistikzeilen und zusätzlicher Hinweis beim Spielende.
 UI_ZEILENABSTAND = 8
 GAME_OVER_ENDE_VERSATZ = 112
+
+# Gegnerfeuer: Sekunden, Pixel/Sekunde, Radien in Pixeln, Winkel in Grad.
+GEGNER_SCHUSS_TEMPO = 320.0
+GEGNER_SCHUSS_LEBENSDAUER = 5.0
+GEGNER_SCHUSS_SCHADEN = 1
+GEGNER_WAFFEN = {
+    "jaeger": {"pause": 1.5, "radius": 6, "winkel": (0,),
+               "farbe": (255, 110, 80)},
+    "panzer": {"pause": 2.0, "radius": 12, "winkel": (-20, 0, 20),
+               "farbe": (220, 130, 255)},
+}

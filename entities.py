@@ -5,6 +5,7 @@ import random
 import pygame
 
 import assets
+import settings
 from settings import (
     SPIELER_FARBE, SPIELER_GROESSE, SPIELER_TEMPO,
     SCHUSS_PAUSE, SCHUSS_TEMPO, SCHUSS_GROESSE, SCHUSS_FARBE,
@@ -123,6 +124,8 @@ class Gegner:
     def __init__(self, typ, fenstergroesse):
         daten = GEGNER_TYPEN[typ]
         self.typ = typ
+        self.waffe = settings.GEGNER_WAFFEN.get(typ)
+        self.schuss_wartezeit = self.waffe["pause"] if self.waffe else 0.0
         self.tempo = daten["tempo"]
         self.leben = daten["leben"]
         self.radius = daten["radius"]
@@ -149,6 +152,7 @@ class Gegner:
         )
 
     def aktualisieren(self, delta_time, spielerposition):
+        self.schuss_wartezeit = max(0.0, self.schuss_wartezeit - delta_time)
         zum_spieler = pygame.Vector2(spielerposition) - self.position
         entfernung = zum_spieler.length()
         if entfernung > 0:
@@ -162,8 +166,37 @@ class Gegner:
             center=(round(self.position.x), round(self.position.y))
         )
 
+    def feuern(self, spielerposition, grenzen):
+        """Nur sichtbare Gegner feuern; die erste Salve folgt nach einer Pause."""
+        if not self.waffe or self.schuss_wartezeit > 0:
+            return []
+        if not grenzen.collidepoint(self.position):
+            return []
+        richtung = pygame.Vector2(spielerposition) - self.position
+        if richtung.length_squared() == 0:
+            return []
+        self.schuss_wartezeit = self.waffe["pause"]
+        return [GegnerSchuss(self.position, richtung.rotate(winkel), self.waffe)
+                for winkel in self.waffe["winkel"]]
+
     def zeichnen(self, fenster):
         fenster.blit(self.bild, self.rect)
+
+
+class GegnerSchuss(Schuss):
+    """Feindliches Projektil mit eigener Größe und gerader Flugbahn."""
+
+    def __init__(self, position, richtung, waffe):
+        self.position = pygame.Vector2(position)
+        self.alter = 0.0
+        self.radius = waffe["radius"]
+        self.geschwindigkeit = (pygame.Vector2(richtung).normalize()
+                                * settings.GEGNER_SCHUSS_TEMPO)
+        self.bild = assets.bild("gegner_schuss", self.radius * 2, waffe["farbe"])
+        self.rect = self.bild.get_rect(center=(round(self.position.x), round(self.position.y)))
+
+    def abgelaufen(self):
+        return self.alter >= settings.GEGNER_SCHUSS_LEBENSDAUER
 
 
 def beruehren(erstes, zweites):

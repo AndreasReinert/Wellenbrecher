@@ -10,11 +10,11 @@ from settings import (
     FENSTERGROESSE, FPS, TITEL,
     WELLEN_STARTANZAHL, WELLEN_ZUWACHS, WELLEN_SPAWN_PAUSE,
     WELLEN_PAUSE, WELLEN_TEXT_DAUER, GEGNER_AB_WELLE,
-    SCHUSS_SCHADEN, GEGNER_KONTAKTSCHADEN,
+    SCHUSS_SCHADEN, GEGNER_KONTAKTSCHADEN, GEGNER_SCHUSS_SCHADEN,
 )
 
 
-def kollisionen_pruefen(spieler, schuesse, gegner):
+def kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse):
     """Listen vor Ort bereinigen und die Anzahl neu besiegter Gegner liefern."""
     verbleibende_schuesse = []
     besiegt = 0
@@ -34,6 +34,13 @@ def kollisionen_pruefen(spieler, schuesse, gegner):
     for feind in gegner:
         if beruehren(feind, spieler):
             spieler.schaden_nehmen(GEGNER_KONTAKTSCHADEN)
+    verbleibend = []
+    for schuss in gegnerschuesse:
+        if beruehren(schuss, spieler):
+            spieler.schaden_nehmen(GEGNER_SCHUSS_SCHADEN)
+        else:
+            verbleibend.append(schuss)
+    gegnerschuesse[:] = verbleibend
     return besiegt
 
 
@@ -78,7 +85,7 @@ class Wellen:
 
 def neues_spiel():
     """Alle veränderlichen Rundendaten frisch anlegen, Bildcache behalten."""
-    return Spieler(FENSTERGROESSE), [], [], Wellen(), 0, "spiel"
+    return Spieler(FENSTERGROESSE), [], [], [], Wellen(), 0, "spiel"
 
 
 def main():
@@ -92,7 +99,7 @@ def main():
         anzeigen = Anzeigen()
         uhr = pygame.time.Clock()
         hintergrundbild = hintergrund(FENSTERGROESSE)
-        spieler, schuesse, gegner, wellen, besiegte_gegner, zustand = neues_spiel()
+        spieler, schuesse, gegner, gegnerschuesse, wellen, besiegte_gegner, zustand = neues_spiel()
         grenzen = fenster.get_rect()
         laeuft = True
 
@@ -107,7 +114,7 @@ def main():
                     laeuft = False
                 elif (ereignis.type == pygame.KEYDOWN
                       and ereignis.key == pygame.K_r and zustand == "game_over"):
-                    spieler, schuesse, gegner, wellen, besiegte_gegner, zustand = neues_spiel()
+                    spieler, schuesse, gegner, gegnerschuesse, wellen, besiegte_gegner, zustand = neues_spiel()
                     # Keine Zeit der alten Runde auf die neue Runde übertragen.
                     delta_time = 0.0
 
@@ -123,6 +130,15 @@ def main():
                     feind.aktualisieren(delta_time, spieler.position)
                 wellen.aktualisieren(delta_time, gegner, spieler.position)
 
+                for schuss in gegnerschuesse:
+                    schuss.aktualisieren(delta_time)
+                gegnerschuesse = [
+                    schuss for schuss in gegnerschuesse
+                    if not schuss.abgelaufen() and schuss.im_fenster(grenzen)
+                ]
+                for feind in gegner:
+                    gegnerschuesse.extend(feind.feuern(spieler.position, grenzen))
+
                 for schuss in schuesse:
                     schuss.aktualisieren(delta_time)
                 schuesse = [
@@ -135,19 +151,21 @@ def main():
                     if schuss is not None:
                         schuesse.append(schuss)
 
-                besiegte_gegner += kollisionen_pruefen(spieler, schuesse, gegner)
+                besiegte_gegner += kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse)
                 wellen.abschluss_pruefen(gegner)
                 if spieler.leben <= 0:
                     zustand = "game_over"
             # Werte zum Testen im Fenstertitel, ohne zusätzliche Spielgrafik.
             pygame.display.set_caption(
-                f"{TITEL} | Welle: {wellen.nummer} | Leben: {spieler.leben} | Besiegt: {besiegte_gegner}"
+                f"{TITEL} | Welle: {wellen.nummer} | Besiegt: {besiegte_gegner}"
             )
 
             fenster.blit(hintergrundbild, (0, 0))
             for feind in gegner:
                 feind.zeichnen(fenster)
             for schuss in schuesse:
+                schuss.zeichnen(fenster)
+            for schuss in gegnerschuesse:
                 schuss.zeichnen(fenster)
             spieler.zeichnen(fenster)
             anzeigen.spielstand(fenster, spieler.leben, wellen.nummer, besiegte_gegner)
