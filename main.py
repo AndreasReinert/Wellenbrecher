@@ -27,7 +27,10 @@ def kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse, kristalle, pa
                 feind.schaden_nehmen(schuss.schaden)
                 if feind.leben == 0:
                     besiegt += 1
-                    kristalle.append(Kristall(feind.position))
+                    if getattr(feind, "levelbonus", 0):
+                        spieler.bonuslevel_erhalten(feind.levelbonus)
+                    else:
+                        kristalle.append(Kristall(feind.position))
                     partikel.explosion(feind.position, feind.typ)
                     if isinstance(feind, Boss):
                         for _ in range(settings.BOSS_EXPLOSIONEN):
@@ -74,7 +77,9 @@ class Wellen:
         # Gleichmäßig mischen: freigeschaltete Typen sind sicher vertreten.
         self.wartend = [typen[index % len(typen)] for index in range(anzahl)]
         random.shuffle(self.wartend)
-        if self.modus == "classic" and self.nummer == settings.CLASSIC_BOSS_WELLE:
+        self.boss = None
+        if ((self.modus == "classic" and self.nummer == settings.CLASSIC_BOSS_WELLE)
+                or (self.modus == "endless" and self.nummer % settings.ENDLESS_BOSS_INTERVALL == 0)):
             self.wartend = ["boss"]
         self.spawn_zeit = 0.0
         self.anzeige_zeit = WELLEN_TEXT_DAUER
@@ -96,12 +101,14 @@ class Wellen:
                     feind = Boss(FENSTERGROESSE) if typ == "boss" else Gegner(typ, FENSTERGROESSE)
                     if typ == "boss":
                         self.boss = feind
+                        feind.levelbonus = settings.ENDLESS_BOSS_LEVELBONUS if self.modus == "endless" else 0
                     feind.aktualisieren(0.0, spielerposition)
                     gegner.append(feind)
                 self.spawn_zeit = WELLEN_SPAWN_PAUSE
 
     def abschluss_pruefen(self, gegner):
-        if self.boss is None and not self.wartend and not gegner and self.pause is None:
+        boss_erledigt = self.boss is None or (self.modus == "endless" and self.boss.leben <= 0)
+        if boss_erledigt and not self.wartend and not gegner and self.pause is None:
             self.geschafft = self.nummer
             self.pause = WELLEN_PAUSE
 
@@ -298,7 +305,7 @@ def main():
                 if spieler.leben <= 0:
                     zustand = "game_over"
                     sound_spielen("gameover")
-                elif wellen.boss is not None and wellen.boss.leben <= 0:
+                elif modus == "classic" and wellen.boss is not None and wellen.boss.leben <= 0:
                     zustand = "sieg"
                     if modus == "classic":
                         highscore.classic_aktualisieren(rekord, spielzeit)

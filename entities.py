@@ -57,6 +57,14 @@ class Spieler:
                 self.erfahrung_bedarf * settings.ERFAHRUNG_WACHSTUM
             )
 
+    def bonuslevel_erhalten(self, anzahl):
+        """Direkte Level samt Karten; vorhandene Erfahrung bleibt erhalten."""
+        for _ in range(anzahl):
+            self.level += 1
+            self.upgrades_offen += 1
+            self.erfahrung_bedarf = math.ceil(
+                self.erfahrung_bedarf * settings.ERFAHRUNG_WACHSTUM)
+
     def aktualisieren(self, delta_time, tasten, mausposition):
         self.unverwundbar_rest = max(0.0, self.unverwundbar_rest - delta_time)
         self.schuss_wartezeit = max(0.0, self.schuss_wartezeit - delta_time)
@@ -87,7 +95,7 @@ class Spieler:
     def upgrade_verfuegbar(self, upgrade):
         if upgrade["id"] == "drohne":
             return self.drohne is None
-        if upgrade["id"] == "drohne_schaden":
+        if upgrade["id"] in ("drohne_schaden", "drohne_feuerrate"):
             return self.drohne is not None
         if upgrade["id"] == "mehrfach":
             return self.schuss_anzahl < upgrade["maximum"]
@@ -103,6 +111,9 @@ class Spieler:
             self.drohne = Drohne(self.position)
         elif art == "drohne_schaden":
             self.drohne.schaden += wert
+        elif art == "drohne_feuerrate":
+            self.drohne.schuss_pause *= wert
+            self.drohne.schuss_wartezeit = min(self.drohne.schuss_wartezeit, self.drohne.schuss_pause)
         elif art == "schaden":
             self.schaden += wert
         elif art == "feuerrate":
@@ -423,6 +434,7 @@ class Drohne:
     def __init__(self, spielerposition):
         self.radius = settings.DROHNE_RADIUS
         self.schaden = settings.DROHNE_STARTSCHADEN
+        self.schuss_pause = settings.DROHNE_SCHUSS_PAUSE
         self.orbitwinkel = settings.DROHNE_STARTWINKEL
         self.schuss_wartezeit = 0.0
         self.position = pygame.Vector2(spielerposition) + pygame.Vector2(
@@ -446,7 +458,7 @@ class Drohne:
         self.bild = pygame.transform.rotate(self.originalbild, winkel)
         if self.schuss_wartezeit > 0:
             return []
-        self.schuss_wartezeit = settings.DROHNE_SCHUSS_PAUSE
+        self.schuss_wartezeit = self.schuss_pause
         return [Schuss(self.position, richtung, self.schaden)]
 
     def zeichnen(self, fenster):

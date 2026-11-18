@@ -54,7 +54,8 @@ GEGNER_AB_WELLE = {"jaeger": 1, "flitzer": 2, "panzer": 3}
 
 # Treffer und Schutzzeit; Radien unabhängig von der Bilddrehung.
 SPIELER_RADIUS = SPIELER_GROESSE / 2
-SPIELER_STARTLEBEN = 5
+SPIELER_MAXLEBEN = 10
+SPIELER_STARTLEBEN = SPIELER_MAXLEBEN
 SPIELER_UNVERWUNDBAR_DAUER = 1.0
 SPIELER_BLINK_PAUSE = 0.1  # Sekunden pro sichtbarer/unsichtbarer Phase
 SCHUSS_RADIUS = SCHUSS_GROESSE / 2
@@ -107,10 +108,10 @@ ERFAHRUNGSLEISTE_TEXTABSTAND = 6
 # Upgrades verändern ausschließlich Werte der aktuellen Spielerinstanz.
 UPGRADES = [
     {"id": "schaden", "name": "Schaden", "wirkung": "+1 Schaden pro Schuss", "icon": "icon_schaden", "wert": 1},
-    {"id": "feuerrate", "name": "Feuerrate", "wirkung": "Feuerpause -15 %", "icon": "icon_feuerrate", "wert": 0.85},
+    {"id": "feuerrate", "name": "Feuerrate", "wirkung": "Feuerpause -25 %", "icon": "icon_feuerrate", "wert": 0.75},
     {"id": "tempo", "name": "Tempo", "wirkung": "Bewegungstempo +12 %", "icon": "icon_tempo", "wert": 1.12},
     {"id": "mehrfach", "name": "Mehrfachschuss", "wirkung": "+1 Schuss (maximal 5)", "icon": "icon_mehrfach", "wert": 1, "maximum": 5},
-    {"id": "leben", "name": "Reparatur", "wirkung": "+1 Leben (maximal 5)", "icon": "icon_leben", "wert": 1, "maximum": 5},
+    {"id": "leben", "name": "Reparatur", "wirkung": "+1 Leben (maximal 10)", "icon": "icon_leben", "wert": 1, "maximum": SPIELER_MAXLEBEN},
     {"id": "magnet", "name": "Magnet", "wirkung": "Magnetradius +40 %", "icon": "icon_magnet", "wert": 1.4},
 ]
 MEHRFACHSCHUSS_START = 1
@@ -259,3 +260,10 @@ UPGRADES.extend([
     {"id": "drohne", "name": "Begleitdrohne", "wirkung": "Feuert automatisch auf Gegner", "icon": "icon_drohne", "wert": 1},
     {"id": "drohne_schaden", "name": "Drohnen-Schaden", "wirkung": "+1 Schaden pro Drohnenschuss", "icon": "icon_drohne_upgrade", "wert": 1},
 ])
+
+# Endless-Bosswellen und direkte Levelbelohnung (keine Erfahrungspunkte).
+ENDLESS_BOSS_INTERVALL = 15
+ENDLESS_BOSS_LEVELBONUS = 3
+UPGRADES.append({"id": "drohne_feuerrate", "name": "Drohnen-Feuerrate",
+                 "wirkung": "Drohnen-Feuerpause -40 %",
+                 "icon": "icon_drohne_feuerrate", "wert": 0.60})
