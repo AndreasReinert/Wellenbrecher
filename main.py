@@ -284,6 +284,10 @@ def main():
                 if pygame.mouse.get_pressed()[0]:
                     schuesse.extend(spieler.feuern(mausposition))
 
+                if spieler.drohne is not None:
+                    schuesse.extend(spieler.drohne.aktualisieren(
+                        delta_time, spieler.position, gegner))
+
                 besiegte_gegner += kollisionen_pruefen(spieler, schuesse, gegner, gegnerschuesse, kristalle, partikel)
                 if spieler.leben > 0:
                     kristalle[:] = [kristall for kristall in kristalle
@@ -328,6 +332,8 @@ def main():
                 schuss.zeichnen(welt)
             partikel.zeichnen(welt)
             spieler.zeichnen(welt)
+            if spieler.drohne is not None:
+                spieler.drohne.zeichnen(welt)
             fenster.fill(settings.DUNKELBLAU)
             fenster.blit(welt, versatz)
             anzeigen.spielstand(fenster, spieler.leben, wellen.nummer, besiegte_gegner)

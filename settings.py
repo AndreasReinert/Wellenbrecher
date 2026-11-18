@@ -246,3 +246,16 @@ GEGNER_WAFFEN["circle"] = {
     "winkel": tuple(i * 360 / CIRCLE_RING_ANZAHL for i in range(CIRCLE_RING_ANZAHL)),
     "bildname": "schuss_circle", "farbe": CIRCLE_FARBE,
 }
+
+# Begleitdrohne: unabhängig von den Waffen-Upgrades des Spielers.
+DROHNE_RADIUS = 6
+DROHNE_FARBE = (90, 255, 220)
+DROHNE_ORBITRADIUS = 58.0
+DROHNE_WINKELTEMPO = 100.0  # Grad pro Sekunde
+DROHNE_STARTWINKEL = -90.0
+DROHNE_SCHUSS_PAUSE = 0.8
+DROHNE_STARTSCHADEN = 1
+UPGRADES.extend([
+    {"id": "drohne", "name": "Begleitdrohne", "wirkung": "Feuert automatisch auf Gegner", "icon": "icon_drohne", "wert": 1},
+    {"id": "drohne_schaden", "name": "Drohnen-Schaden", "wirkung": "+1 Schaden pro Drohnenschuss", "icon": "icon_drohne_upgrade", "wert": 1},
+])

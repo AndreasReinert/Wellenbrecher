@@ -28,6 +28,7 @@ class Spieler:
         self.schuss_pause = SCHUSS_PAUSE
         self.schuss_anzahl = settings.MEHRFACHSCHUSS_START
         self.magnetradius = settings.KRISTALL_MAGNETRADIUS
+        self.drohne = None
         self.upgrades_offen = 0
         self.level = 1
         self.erfahrung = 0
@@ -84,6 +85,10 @@ class Spieler:
         )
 
     def upgrade_verfuegbar(self, upgrade):
+        if upgrade["id"] == "drohne":
+            return self.drohne is None
+        if upgrade["id"] == "drohne_schaden":
+            return self.drohne is not None
         if upgrade["id"] == "mehrfach":
             return self.schuss_anzahl < upgrade["maximum"]
         if upgrade["id"] == "leben":
@@ -94,7 +99,11 @@ class Spieler:
         if not self.upgrade_verfuegbar(upgrade):
             return False
         art, wert = upgrade["id"], upgrade["wert"]
-        if art == "schaden":
+        if art == "drohne":
+            self.drohne = Drohne(self.position)
+        elif art == "drohne_schaden":
+            self.drohne.schaden += wert
+        elif art == "schaden":
             self.schaden += wert
         elif art == "feuerrate":
             self.schuss_pause *= wert
@@ -406,3 +415,40 @@ class Boss(Gegner):
         self.hilfe_offen = False
         return [Gegner("jaeger", settings.FENSTERGROESSE)
                 for _ in range(settings.BOSS_HILFE_ANZAHL)]
+
+
+class Drohne:
+    """Umläuft den Spieler und zielt vom eigenen Mittelpunkt auf den nächsten Gegner."""
+
+    def __init__(self, spielerposition):
+        self.radius = settings.DROHNE_RADIUS
+        self.schaden = settings.DROHNE_STARTSCHADEN
+        self.orbitwinkel = settings.DROHNE_STARTWINKEL
+        self.schuss_wartezeit = 0.0
+        self.position = pygame.Vector2(spielerposition) + pygame.Vector2(
+            settings.DROHNE_ORBITRADIUS, 0).rotate(self.orbitwinkel)
+        self.originalbild = assets.bild("drohne", self.radius * 2, settings.DROHNE_FARBE)
+        self.bild = self.originalbild
+
+    def aktualisieren(self, delta_time, spielerposition, gegner):
+        self.orbitwinkel = (self.orbitwinkel + settings.DROHNE_WINKELTEMPO * delta_time) % 360
+        self.position = pygame.Vector2(spielerposition) + pygame.Vector2(
+            settings.DROHNE_ORBITRADIUS, 0).rotate(self.orbitwinkel)
+        self.schuss_wartezeit = max(0.0, self.schuss_wartezeit - delta_time)
+        lebende = [feind for feind in gegner if feind.leben > 0]
+        if not lebende:
+            return []
+        ziel = min(lebende, key=lambda feind: self.position.distance_squared_to(feind.position))
+        richtung = ziel.position - self.position
+        if richtung.length_squared() == 0:
+            return []
+        winkel = math.degrees(math.atan2(-richtung.x, -richtung.y))
+        self.bild = pygame.transform.rotate(self.originalbild, winkel)
+        if self.schuss_wartezeit > 0:
+            return []
+        self.schuss_wartezeit = settings.DROHNE_SCHUSS_PAUSE
+        return [Schuss(self.position, richtung, self.schaden)]
+
+    def zeichnen(self, fenster):
+        fenster.blit(self.bild, self.bild.get_rect(
+            center=(round(self.position.x), round(self.position.y))))
