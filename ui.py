@@ -61,6 +61,16 @@ class Anzeigen:
         pygame.draw.rect(fenster, settings.LEISTE_FARBE, fuellung)
         pygame.draw.rect(fenster, settings.UI_TEXTFARBE, rahmen, settings.LEISTE_RAHMEN)
 
+    def spielstand(self, fenster, leben, welle, besiegt):
+        self.lebensleiste(fenster, leben)
+        y = (settings.UI_RAND + self.schrift.get_height()
+             + settings.LEISTE_TEXT_ABSTAND + settings.LEISTE_GROESSE[1]
+             + settings.UI_ZEILENABSTAND)
+        for inhalt in (f"Welle: {welle}", f"Besiegte Gegner: {besiegt}"):
+            text = self.schrift.render(inhalt, True, settings.UI_TEXTFARBE)
+            fenster.blit(text, (settings.UI_RAND, y))
+            y += self.schrift.get_linesize() + settings.UI_ZEILENABSTAND
+
     def welle(self, fenster, nummer):
         text = self.wellenschrift.render(f"Welle {nummer}", True, settings.UI_TEXTFARBE)
         fenster.blit(text, text.get_rect(center=fenster.get_rect().center))
@@ -71,10 +81,11 @@ class Anzeigen:
         zeilen = (
             ("GAME OVER", self.endschrift, settings.GAME_OVER_FARBE, -settings.GAME_OVER_ABSTAND),
             (f"Welle {welle}  |  Besiegt: {besiegt}", self.schrift, settings.UI_TEXTFARBE, 0),
-            ("Esc oder X zum Beenden", self.schrift, settings.UI_TEXTFARBE, settings.GAME_OVER_ABSTAND),
+            ("R = Restart", self.schrift, settings.UI_TEXTFARBE, settings.GAME_OVER_ABSTAND),
+            ("Esc oder X zum Beenden", self.schrift, settings.UI_TEXTFARBE, settings.GAME_OVER_ENDE_VERSATZ),
         )
         for inhalt, schrift, farbe, versatz in zeilen:
             text = schrift.render(inhalt, True, farbe)
             fenster.blit(text, text.get_rect(center=(x, y + versatz)))
         # Auch beim Spielende bleibt der leere Lebensbalken sichtbar.
-        self.lebensleiste(fenster, 0)
+        self.spielstand(fenster, 0, welle, besiegt)

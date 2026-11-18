@@ -76,6 +76,11 @@ class Wellen:
             self.pause = WELLEN_PAUSE
 
 
+def neues_spiel():
+    """Alle veränderlichen Rundendaten frisch anlegen, Bildcache behalten."""
+    return Spieler(FENSTERGROESSE), [], [], Wellen(), 0, "spiel"
+
+
 def main():
     pygame.init()
     maus_war_sichtbar = pygame.mouse.get_visible()
@@ -85,14 +90,9 @@ def main():
         pygame.mouse.set_visible(False)
         fadenkreuz = Fadenkreuz()
         anzeigen = Anzeigen()
-        wellen = Wellen()
-        game_over = False
         uhr = pygame.time.Clock()
         hintergrundbild = hintergrund(FENSTERGROESSE)
-        spieler = Spieler(FENSTERGROESSE)
-        schuesse = []
-        gegner = []
-        besiegte_gegner = 0
+        spieler, schuesse, gegner, wellen, besiegte_gegner, zustand = neues_spiel()
         grenzen = fenster.get_rect()
         laeuft = True
 
@@ -105,12 +105,17 @@ def main():
                     laeuft = False
                 elif ereignis.type == pygame.KEYDOWN and ereignis.key == pygame.K_ESCAPE:
                     laeuft = False
+                elif (ereignis.type == pygame.KEYDOWN
+                      and ereignis.key == pygame.K_r and zustand == "game_over"):
+                    spieler, schuesse, gegner, wellen, besiegte_gegner, zustand = neues_spiel()
+                    # Keine Zeit der alten Runde auf die neue Runde übertragen.
+                    delta_time = 0.0
 
             if not laeuft:
                 break
 
             mausposition = pygame.mouse.get_pos()
-            if not game_over:
+            if zustand == "spiel":
                 spieler.aktualisieren(
                     delta_time, pygame.key.get_pressed(), mausposition
                 )
@@ -132,7 +137,8 @@ def main():
 
                 besiegte_gegner += kollisionen_pruefen(spieler, schuesse, gegner)
                 wellen.abschluss_pruefen(gegner)
-                game_over = spieler.leben <= 0
+                if spieler.leben <= 0:
+                    zustand = "game_over"
             # Werte zum Testen im Fenstertitel, ohne zusätzliche Spielgrafik.
             pygame.display.set_caption(
                 f"{TITEL} | Welle: {wellen.nummer} | Leben: {spieler.leben} | Besiegt: {besiegte_gegner}"
@@ -144,8 +150,8 @@ def main():
             for schuss in schuesse:
                 schuss.zeichnen(fenster)
             spieler.zeichnen(fenster)
-            anzeigen.lebensleiste(fenster, spieler.leben)
-            if game_over:
+            anzeigen.spielstand(fenster, spieler.leben, wellen.nummer, besiegte_gegner)
+            if zustand == "game_over":
                 anzeigen.game_over(fenster, wellen.nummer, besiegte_gegner)
             elif wellen.anzeige_zeit > 0:
                 anzeigen.welle(fenster, wellen.nummer)
