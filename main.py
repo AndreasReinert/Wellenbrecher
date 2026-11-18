@@ -69,7 +69,8 @@ class Wellen:
     def starten(self):
         self.nummer += 1
         anzahl = WELLEN_STARTANZAHL + (self.nummer - 1) * WELLEN_ZUWACHS
-        typen = [typ for typ, ab in GEGNER_AB_WELLE.items() if self.nummer >= ab]
+        freischaltungen = settings.GEGNER_AB_WELLE_MODUS[self.modus]
+        typen = [typ for typ, ab in freischaltungen.items() if self.nummer >= ab]
         # Gleichmäßig mischen: freigeschaltete Typen sind sicher vertreten.
         self.wartend = [typen[index % len(typen)] for index in range(anzahl)]
         random.shuffle(self.wartend)
@@ -110,12 +111,44 @@ def neues_spiel(modus="endless"):
     return Spieler(FENSTERGROESSE), [], [], [], [], Partikelsystem(), Wellen(modus), 0, "spiel"
 
 
+class Bildschirm:
+    """Feste Spielkoordinaten mit proportionaler Skalierung und schwarzen Rändern."""
+
+    def __init__(self):
+        self.vollbild = settings.VOLLBILD_START
+        self.einrichten()
+
+    def einrichten(self):
+        self.anzeige = pygame.display.set_mode(
+            (0, 0) if self.vollbild else FENSTERGROESSE,
+            pygame.FULLSCREEN if self.vollbild else 0)
+        breite, hoehe = self.anzeige.get_size()
+        faktor = min(breite / FENSTERGROESSE[0], hoehe / FENSTERGROESSE[1])
+        self.ziel = pygame.Rect(0, 0, round(FENSTERGROESSE[0] * faktor),
+                                round(FENSTERGROESSE[1] * faktor))
+        self.ziel.center = self.anzeige.get_rect().center
+
+    def umschalten(self):
+        self.vollbild = not self.vollbild
+        self.einrichten()
+
+    def mausposition(self, position):
+        return ((position[0] - self.ziel.x) * FENSTERGROESSE[0] / self.ziel.width,
+                (position[1] - self.ziel.y) * FENSTERGROESSE[1] / self.ziel.height)
+
+    def zeigen(self, flaeche):
+        self.anzeige.fill((0, 0, 0))
+        self.anzeige.blit(pygame.transform.scale(flaeche, self.ziel.size), self.ziel)
+        pygame.display.flip()
+
+
 def main():
     pygame.init()
     sounds_laden()
     maus_war_sichtbar = pygame.mouse.get_visible()
     try:
-        fenster = pygame.display.set_mode(FENSTERGROESSE)
+        bildschirm = Bildschirm()
+        fenster = pygame.Surface(FENSTERGROESSE)
         pygame.display.set_caption(TITEL)
         pygame.mouse.set_visible(False)
         fadenkreuz = Fadenkreuz()
@@ -142,8 +175,15 @@ def main():
             for ereignis in pygame.event.get():
                 if ereignis.type == pygame.QUIT:
                     laeuft = False
+                elif ereignis.type == pygame.KEYDOWN and ereignis.key == pygame.K_F11:
+                    bildschirm.umschalten()
                 elif ereignis.type == pygame.KEYDOWN and ereignis.key == pygame.K_ESCAPE:
-                    laeuft = False
+                    if zustand == "game_over":
+                        zustand = "menue"
+                        upgrade_karten.leeren()
+                        versatz = (0, 0)
+                    else:
+                        laeuft = False
                 elif (ereignis.type == pygame.KEYDOWN
                       and ereignis.key == pygame.K_r and zustand in ("game_over", "sieg")):
                     spieler, schuesse, gegner, gegnerschuesse, kristalle, partikel, wellen, besiegte_gegner, zustand = neues_spiel(modus)
@@ -155,7 +195,7 @@ def main():
 
                 elif (ereignis.type == pygame.MOUSEBUTTONDOWN
                       and ereignis.button == 1 and zustand in ("menue", "steuerung")):
-                    aktion = startmenue.auswahl(ereignis.pos, zustand)
+                    aktion = startmenue.auswahl(bildschirm.mausposition(ereignis.pos), zustand)
                     if aktion == "Spielen":
                         zustand = "moduswahl"
                     elif aktion == "Steuerung":
@@ -167,7 +207,7 @@ def main():
 
                 elif (ereignis.type == pygame.MOUSEBUTTONDOWN
                       and ereignis.button == 1 and zustand == "moduswahl"):
-                    karte = modus_karten.auswahl(ereignis.pos)
+                    karte = modus_karten.auswahl(bildschirm.mausposition(ereignis.pos))
                     if karte:
                         modus = karte["id"]
                         spieler, schuesse, gegner, gegnerschuesse, kristalle, partikel, wellen, besiegte_gegner, zustand = neues_spiel(modus)
@@ -179,7 +219,7 @@ def main():
 
                 elif (ereignis.type == pygame.MOUSEBUTTONDOWN
                       and ereignis.button == 1 and zustand == "upgrade"):
-                    upgrade = upgrade_karten.auswahl(ereignis.pos)
+                    upgrade = upgrade_karten.auswahl(bildschirm.mausposition(ereignis.pos))
                     if upgrade is not None and spieler.upgrade_anwenden(upgrade):
                         spieler.upgrades_offen -= 1
                         if spieler.upgrades_offen > 0:
@@ -195,7 +235,7 @@ def main():
             if not laeuft:
                 break
 
-            mausposition = pygame.mouse.get_pos()
+            mausposition = bildschirm.mausposition(pygame.mouse.get_pos())
             if zustand in ("menue", "steuerung", "moduswahl"):
                 if zustand == "moduswahl":
                     fenster.blit(startmenue.hintergrund, (0, 0))
@@ -204,7 +244,7 @@ def main():
                     startmenue.zeichnen(fenster, mausposition, zustand)
                 if pygame.mouse.get_focused():
                     fadenkreuz.zeichnen(fenster, mausposition)
-                pygame.display.flip()
+                bildschirm.zeigen(fenster)
                 continue
 
             if zustand != "upgrade":
@@ -256,6 +296,8 @@ def main():
                     sound_spielen("gameover")
                 elif wellen.boss is not None and wellen.boss.leben <= 0:
                     zustand = "sieg"
+                    if modus == "classic":
+                        highscore.classic_aktualisieren(rekord, spielzeit)
                     gegnerschuesse.clear()
                     schuesse.clear()
                 elif spieler.upgrades_offen > 0:
@@ -302,7 +344,7 @@ def main():
                 upgrade_karten.zeichnen(fenster, mausposition)
             if pygame.mouse.get_focused():
                 fadenkreuz.zeichnen(fenster, mausposition)
-            pygame.display.flip()
+            bildschirm.zeigen(fenster)
     finally:
         pygame.mouse.set_visible(maus_war_sichtbar)
         pygame.quit()

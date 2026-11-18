@@ -85,7 +85,7 @@ class Anzeigen:
             ("GAME OVER", self.endschrift, settings.GAME_OVER_FARBE, -settings.GAME_OVER_ABSTAND),
             (f"Welle {welle}  |  Besiegt: {besiegt}", self.schrift, settings.UI_TEXTFARBE, 0),
             ("R = Restart", self.schrift, settings.UI_TEXTFARBE, settings.GAME_OVER_ABSTAND),
-            ("Esc oder X zum Beenden", self.schrift, settings.UI_TEXTFARBE, settings.GAME_OVER_ENDE_VERSATZ),
+            ("ESC = Hauptmenü", self.schrift, settings.UI_TEXTFARBE, settings.GAME_OVER_ENDE_VERSATZ),
         )
         for inhalt, schrift, farbe, versatz in zeilen:
             text = schrift.render(inhalt, True, farbe)
@@ -213,7 +213,7 @@ class Startmenue:
         if zustand == "steuerung":
             zeilen = ("WASD – Schiff bewegen", "Maus – Zielen  |  Linke Maustaste halten – Schießen",
                       "Kristalle sammeln – Level aufsteigen und Upgrade wählen",
-                      "R – Neustart nach Game Over  |  Esc – Spiel beenden")
+                      "R – Neustart  |  ESC – bei Game Over ins Menü  |  F11 – Vollbild")
             for index, text in enumerate(zeilen):
                 self._text(fenster, text, settings.MENUE_HILFE_Y + index * settings.MENUE_HILFE_ABSTAND, self.schrift)
             knoepfe = [("Zurück", self.zurueck)]
@@ -241,10 +241,16 @@ class ModusKarten(UpgradeKarten):
     def zeichnen(self, fenster, mausposition):
         super().zeichnen(fenster, mausposition)
         for karte, (rect, aktiv) in zip(self.karten, self.rechtecke(mausposition)):
-            if karte["id"] != "endless":
-                continue
-            zeilen = (f"Rekord: {self.rekord['besiegte_gegner']} besiegte Gegner",
-                      f"Geschaffte Wellen: {self.rekord['geschaffte_wellen']}")
+            if karte["id"] == "classic":
+                zeit = self.rekord.get("classic_bestzeit")
+                if zeit is None:
+                    zeilen = ("Bestzeit: --:--", "Noch kein Sieg")
+                else:
+                    minuten, sekunden = divmod(int(zeit), 60)
+                    zeilen = (f"Bestzeit: {minuten:02d}:{sekunden:02d}", "Schnellster Classic-Sieg")
+            else:
+                zeilen = (f"Rekord: {self.rekord['besiegte_gegner']} besiegte Gegner",
+                          f"Geschaffte Wellen: {self.rekord['geschaffte_wellen']}")
             for index, inhalt in enumerate(zeilen):
                 text = self.text.render(inhalt, True, settings.MENUE_AKZENT)
                 fenster.blit(text, text.get_rect(center=(rect.centerx,

@@ -222,3 +222,27 @@ GEGNER_TYPEN["boss"] = {"tempo": BOSS_TEMPO, "leben": BOSS_LEBEN,
 HIGHSCORE_DATEI = Path.home() / ".wellenbrecher" / "highscore.json"
 HIGHSCORE_TEXT_Y = 267
 HIGHSCORE_ZEILENABSTAND = 25
+
+# Anzeige: F11 schaltet jederzeit zwischen Fenster und Vollbild um.
+VOLLBILD_START = False
+
+# Freischaltungen beziehen sich auf Wellen, nicht auf das Spielerlevel.
+GEGNER_AB_WELLE_MODUS = {
+    "classic": {"jaeger": 1, "flitzer": 2, "panzer": 3, "circle": 4},
+    "endless": {"jaeger": 1, "flitzer": 2, "panzer": 5, "circle": 8},
+}
+CIRCLE_LEBEN = 12
+CIRCLE_RADIUS = 34
+CIRCLE_FARBE = (255, 100, 195)
+CIRCLE_SCHUSS_PAUSE = 5.0
+CIRCLE_RING_ANZAHL = 16
+CIRCLE_SCHUSS_RADIUS = 10
+GEGNER_TYPEN["circle"] = {
+    "tempo": GEGNER_TYPEN["panzer"]["tempo"], "leben": CIRCLE_LEBEN,
+    "radius": CIRCLE_RADIUS, "bildname": "circle", "ersatzfarbe": CIRCLE_FARBE,
+}
+GEGNER_WAFFEN["circle"] = {
+    "pause": CIRCLE_SCHUSS_PAUSE, "radius": CIRCLE_SCHUSS_RADIUS,
+    "winkel": tuple(i * 360 / CIRCLE_RING_ANZAHL for i in range(CIRCLE_RING_ANZAHL)),
+    "bildname": "schuss_circle", "farbe": CIRCLE_FARBE,
+}
